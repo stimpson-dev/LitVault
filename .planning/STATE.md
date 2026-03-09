@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 5 (Search & Filter API) — COMPLETE
-- **Next Step**: `/gsd:plan-phase 6`
-- **Milestone**: M2 COMPLETE (Phases 4-5 done)
+- **Phase**: 6 (Frontend — Search UI) — COMPLETE
+- **Next Step**: `/gsd:plan-phase 7`
+- **Milestone**: M2 COMPLETE (Phases 4-5 done), M3 in progress
 
 ## Completed
 - [x] PROJECT.md created
@@ -31,6 +31,10 @@
 - [x] Phase 5 executed: Search & Filter API
   - Plan 01: FTS5 query sanitizer, SearchService (BM25, snippets, filters, facets)
   - Plan 02: Search API, saved searches CRUD, duplicate check
+- [x] Phase 6 executed: Frontend — Search UI
+  - Plan 01: API client, types, useSearch hook, SearchBar, ResultsList
+  - Plan 02: FilterSidebar with facets, FilterChips
+  - Plan 03: DocumentDetail panel, App.tsx 3-column layout
 
 ## Key Decisions
 - Stack: FastAPI + React + SQLite/FTS5 + Ollama/Qwen3
