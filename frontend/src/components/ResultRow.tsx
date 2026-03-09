@@ -1,5 +1,6 @@
 import { FileText, FileSpreadsheet, Presentation } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { FavoriteButton } from '@/components/FavoriteButton';
 import type { SearchDocument } from '@/lib/types';
 
 interface ResultRowProps {
@@ -72,6 +73,7 @@ export function ResultRow({ doc, onSelect }: ResultRowProps) {
             />
           )}
         </div>
+        <FavoriteButton docId={doc.id} />
       </div>
     </button>
   );

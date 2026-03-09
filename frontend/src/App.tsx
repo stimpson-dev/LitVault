@@ -5,10 +5,24 @@ import { FilterSidebar } from './components/FilterSidebar';
 import { FilterChips } from './components/FilterChips';
 import { ResultsList } from './components/ResultsList';
 import { DocumentDetail } from './components/DocumentDetail';
+import { Toolbar } from './components/Toolbar';
+import { JobProgress } from './components/JobProgress';
+import { SettingsPanel } from './components/SettingsPanel';
+import { SavedSearches } from './components/SavedSearches';
+import { ReviewQueue } from './components/ReviewQueue';
 
 function App() {
   const search = useSearch();
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showReviewQueue, setShowReviewQueue] = useState(false);
+  const [showSavedSearches, setShowSavedSearches] = useState(false);
+
+  const handleLoadSearch = (query: string, filters: typeof search.filters) => {
+    search.setQuery(query);
+    search.setFilters(filters);
+    setShowSavedSearches(false);
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
@@ -21,6 +35,30 @@ function App() {
         />
       </header>
 
+      {/* Toolbar */}
+      <div className="relative">
+        <Toolbar
+          onOpenSettings={() => setShowSettings(true)}
+          onOpenReviewQueue={() => setShowReviewQueue(!showReviewQueue)}
+          onOpenSavedSearches={() => setShowSavedSearches(!showSavedSearches)}
+          query={search.query}
+          filters={search.filters}
+          resultCount={search.results?.total}
+        />
+
+        {/* Saved searches dropdown */}
+        {showSavedSearches && (
+          <div className="absolute top-full left-0 z-40 mt-1 ml-4">
+            <SavedSearches
+              currentQuery={search.query}
+              currentFilters={search.filters}
+              onLoadSearch={handleLoadSearch}
+              onClose={() => setShowSavedSearches(false)}
+            />
+          </div>
+        )}
+      </div>
+
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
         {/* Left sidebar: filters */}
@@ -32,20 +70,32 @@ function App() {
           />
         </aside>
 
-        {/* Center: results */}
+        {/* Center: results or review queue */}
         <main className="flex-1 overflow-y-auto">
-          <FilterChips
-            filters={search.filters}
-            onFilterChange={search.setFilters}
-          />
-          <ResultsList
-            documents={search.results?.documents}
-            total={search.results?.total}
-            loading={search.loading}
-            offset={search.offset}
-            onLoadMore={() => search.setOffset(search.offset + 50)}
-            onSelect={setSelectedDocId}
-          />
+          {showReviewQueue ? (
+            <ReviewQueue
+              onSelectDoc={(id) => {
+                setSelectedDocId(id);
+                setShowReviewQueue(false);
+              }}
+              onClose={() => setShowReviewQueue(false)}
+            />
+          ) : (
+            <>
+              <FilterChips
+                filters={search.filters}
+                onFilterChange={search.setFilters}
+              />
+              <ResultsList
+                documents={search.results?.documents}
+                total={search.results?.total}
+                loading={search.loading}
+                offset={search.offset}
+                onLoadMore={() => search.setOffset(search.offset + 50)}
+                onSelect={setSelectedDocId}
+              />
+            </>
+          )}
         </main>
 
         {/* Right panel: document detail */}
@@ -58,6 +108,14 @@ function App() {
           </aside>
         )}
       </div>
+
+      {/* Settings modal */}
+      {showSettings && (
+        <SettingsPanel onClose={() => setShowSettings(false)} />
+      )}
+
+      {/* Job progress indicator */}
+      <JobProgress />
     </div>
   );
 }
