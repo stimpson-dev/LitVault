@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.database import engine, Base
 from app.documents import models  # noqa: F401 — register models with Base
+from app.documents.router import router as documents_router
 
 logger = logging.getLogger("litvault")
 
@@ -45,6 +46,8 @@ app.add_middleware(
 async def health():
     return {"status": "ok", "service": "litvault"}
 
+
+app.include_router(documents_router)
 
 # Serve frontend static files in production (after all API routes)
 frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"
