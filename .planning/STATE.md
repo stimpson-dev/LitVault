@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 4 (AI Classification) — COMPLETE
-- **Next Step**: `/gsd:plan-phase 5`
-- **Milestone**: M2 in progress (Phase 4/5 done)
+- **Phase**: 5 (Search & Filter API) — COMPLETE
+- **Next Step**: `/gsd:plan-phase 6`
+- **Milestone**: M2 COMPLETE (Phases 4-5 done)
 
 ## Completed
 - [x] PROJECT.md created
@@ -28,6 +28,9 @@
 - [x] Phase 4 executed: AI Classification
   - Plan 01: Ollama client, classification schemas/prompt, ClassificationService
   - Plan 02: Pipeline integration (IngestService + Worker CLASSIFY jobs)
+- [x] Phase 5 executed: Search & Filter API
+  - Plan 01: FTS5 query sanitizer, SearchService (BM25, snippets, filters, facets)
+  - Plan 02: Search API, saved searches CRUD, duplicate check
 
 ## Key Decisions
 - Stack: FastAPI + React + SQLite/FTS5 + Ollama/Qwen3
