@@ -2,6 +2,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Callable
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -29,7 +30,11 @@ class IngestService:
         self.db = db
         self.settings = settings
 
-    async def ingest_folder(self, folder: str) -> IngestResult:
+    async def ingest_folder(
+        self,
+        folder: str,
+        on_progress: Callable[[int, int, str], None] | None = None,
+    ) -> IngestResult:
         folder_path = Path(folder)
         if not folder_path.is_dir():
             logger.error("Folder not accessible: %s", folder)
@@ -47,7 +52,7 @@ class IngestService:
         errors = 0
         skipped = 0
 
-        for meta in new_files:
+        for idx, meta in enumerate(new_files):
             try:
                 doc = await self._upsert_document(meta)
                 doc.processing_status = "processing"
@@ -76,6 +81,9 @@ class IngestService:
                             logger.debug("Thumbnail generated: %s", thumb_path)
 
                 await self.db.commit()
+
+                if on_progress:
+                    on_progress(idx + 1, total_found, f"Processed: {meta['file_path']}")
 
             except Exception as exc:
                 logger.error("Unexpected error ingesting %s: %s", meta["file_path"], exc)
