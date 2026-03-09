@@ -1,13 +1,14 @@
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
-from pathlib import Path
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.config import Settings
-from app.deps import get_db, get_settings_dep
+from app.deps import get_db
 from app.documents.models import Document
-from app.ingest.service import IngestService
+from app.jobs.models import JobType
+from app.jobs.router import _queue, _store
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
@@ -16,31 +17,16 @@ class CrawlRequest(BaseModel):
     folder: str
 
 
-class CrawlResponse(BaseModel):
-    total_found: int
-    new_files: int
-    processed: int
-    errors: int
-    skipped: int
-
-
-@router.post("/crawl", response_model=CrawlResponse)
-async def crawl(
-    request: CrawlRequest,
-    db: AsyncSession = Depends(get_db),
-    settings: Settings = Depends(get_settings_dep),
-) -> CrawlResponse:
+@router.post("/crawl")
+async def crawl(request: CrawlRequest) -> dict:
+    """Submit a crawl job (async). Use GET /api/jobs/{job_id} to check status."""
     if not Path(request.folder).is_dir():
         raise HTTPException(status_code=400, detail=f"Folder not found: {request.folder}")
-    service = IngestService(db, settings)
-    result = await service.ingest_folder(request.folder)
-    return CrawlResponse(
-        total_found=result.total_found,
-        new_files=result.new_files,
-        processed=result.processed,
-        errors=result.errors,
-        skipped=result.skipped,
-    )
+    if _store is None or _queue is None:
+        raise HTTPException(status_code=503, detail="Job system not initialized")
+    job = _store.create_job(JobType.CRAWL, {"folder": request.folder})
+    await _queue.put(job)
+    return {"job_id": job.id, "status": job.status.value}
 
 
 @router.get("/documents")
