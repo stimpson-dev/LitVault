@@ -1,3 +1,4 @@
+import json
 import logging
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -7,8 +8,10 @@ from typing import Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.classification.ollama_client import OllamaClient
+from app.classification.service import ClassificationService, detect_language
 from app.config import Settings
-from app.documents.models import Document
+from app.documents.models import Category, Document, DocumentCategory, DocumentTag, Tag
 from app.ingest.crawler import find_new_files
 from app.ingest.parsers import parse_document
 from app.ingest.thumbnail import generate_thumbnail_async
@@ -26,9 +29,77 @@ class IngestResult:
 
 
 class IngestService:
-    def __init__(self, db: AsyncSession, settings: Settings) -> None:
+    def __init__(self, db: AsyncSession, settings: Settings, ollama: OllamaClient | None = None) -> None:
         self.db = db
         self.settings = settings
+        self.classifier = ClassificationService(ollama) if ollama else None
+
+    async def _apply_classification(self, doc: Document, text: str) -> None:
+        if self.classifier is None:
+            return
+
+        # Detect language
+        doc.language = detect_language(text)
+
+        # Classify
+        result, tier = await self.classifier.classify_document(
+            text, filename=Path(doc.file_path).name
+        )
+
+        # Update document fields
+        if result.title:
+            doc.title = result.title
+        doc.authors = json.dumps(result.authors) if result.authors else None
+        doc.year = result.year
+        doc.doc_type = result.doc_type
+        doc.source = result.source
+        doc.summary = result.summary
+        doc.classification_confidence = result.confidence
+        doc.classification_source = "ai"
+
+        # Get-or-create tags
+        for tag_name in result.tags:
+            tag_result = await self.db.execute(
+                select(Tag).where(Tag.name == tag_name)
+            )
+            tag = tag_result.scalar_one_or_none()
+            if tag is None:
+                tag = Tag(name=tag_name)
+                self.db.add(tag)
+                await self.db.flush()
+
+            # Check if link already exists
+            link_result = await self.db.execute(
+                select(DocumentTag).where(
+                    DocumentTag.document_id == doc.id,
+                    DocumentTag.tag_id == tag.id,
+                )
+            )
+            if link_result.scalar_one_or_none() is None:
+                self.db.add(DocumentTag(document_id=doc.id, tag_id=tag.id, source="ai"))
+
+        # Get-or-create categories
+        for cat_name in result.categories:
+            cat_result = await self.db.execute(
+                select(Category).where(Category.name == cat_name)
+            )
+            cat = cat_result.scalar_one_or_none()
+            if cat is None:
+                cat = Category(name=cat_name)
+                self.db.add(cat)
+                await self.db.flush()
+
+            link_result = await self.db.execute(
+                select(DocumentCategory).where(
+                    DocumentCategory.document_id == doc.id,
+                    DocumentCategory.category_id == cat.id,
+                )
+            )
+            if link_result.scalar_one_or_none() is None:
+                self.db.add(DocumentCategory(document_id=doc.id, category_id=cat.id, source="ai"))
+
+        if tier == "needs-review":
+            logger.info("Document %s needs manual review (confidence: %.2f)", doc.file_path, result.confidence)
 
     async def ingest_folder(
         self,
@@ -79,6 +150,12 @@ class IngestService:
                         )
                         if thumb_path is not None:
                             logger.debug("Thumbnail generated: %s", thumb_path)
+
+                    # Classify document
+                    try:
+                        await self._apply_classification(doc, result.text)
+                    except Exception as cls_err:
+                        logger.warning("Classification failed for %s: %s", meta["file_path"], cls_err)
 
                 await self.db.commit()
 
