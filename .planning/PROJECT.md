@@ -21,15 +21,20 @@ Solo-User (Ingenieur im Bereich Verzahnungstechnik / FEM-Simulation), arbeitet m
 - Anwendungen / Differential / E-Achse / Nutzfahrzeug
 - Interne Berichte / Projektdokumente
 
-## Tech Stack
-- **Backend**: Python 3.x + FastAPI
-- **Datenbank**: SQLite + FTS5 (Volltextsuche)
-- **Frontend**: React + Vite + TailwindCSS
-- **Dokumenten-Parsing**: PyMuPDF (PDF), python-docx (DOCX), python-pptx (PPTX)
-- **OCR-Fallback**: Tesseract via pytesseract
-- **AI-Klassifikation**: Qwen via Ollama (lokal, NVIDIA GPU)
-- **Embeddings**: all-MiniLM-L6-v2 (sentence-transformers) für Similarity Search
-- **Schema-Migration**: Alembic
+## Tech Stack (post-research)
+- **Backend**: Python 3.12+ / FastAPI / uv
+- **Datenbank**: SQLite + FTS5 (WAL-Mode, externe Content-Tabelle mit Triggers)
+- **ORM**: SQLAlchemy 2.x + aiosqlite
+- **Frontend**: React + Vite + TailwindCSS + shadcn/ui + TanStack Table v8
+- **Dokumenten-Parsing**: pymupdf4llm (PDF), python-docx (DOCX), python-pptx (PPTX)
+- **OCR-Fallback**: Tesseract via pytesseract (deu+eng)
+- **AI-Klassifikation**: Qwen3:8b via Ollama (lokal, NVIDIA GPU, structured JSON output)
+- **Embeddings**: nomic-embed-text-v1.5 (sentence-transformers, 8192 Token Kontext)
+- **Schema-Migration**: Alembic (render_as_batch)
+- **Background Jobs**: asyncio.Queue + Worker-Coroutine (kein Redis)
+- **Progress**: SSE (StreamingResponse)
+- **File Watcher**: watchfiles (Rust-basiert, async-nativ)
+- **Vector Search (v2)**: sqlite-vec
 
 ## Pflichtfelder pro Dokument
 | Feld | Quelle |
