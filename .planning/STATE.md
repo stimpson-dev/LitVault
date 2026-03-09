@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 0 (Initialization complete)
-- **Next Step**: `/gsd:plan-phase 1`
-- **Milestone**: Pre-M1
+- **Phase**: 1 (Foundation & Database) — PLANNED
+- **Next Step**: `/gsd:execute-phase 1`
+- **Milestone**: M1 in progress
 
 ## Completed
 - [x] PROJECT.md created
