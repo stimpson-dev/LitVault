@@ -11,6 +11,7 @@ from app.config import get_settings
 from app.database import engine, Base
 from app.documents import models  # noqa: F401 — register models with Base
 from app.documents.router import router as documents_router
+from app.search.router import router as search_router
 from app.jobs.models import JobStore
 from app.jobs.worker import worker_loop
 from app.jobs.watcher import watch_folders
@@ -84,6 +85,7 @@ async def health():
 
 app.include_router(documents_router)
 app.include_router(jobs_router)
+app.include_router(search_router)
 
 # Serve frontend static files in production (after all API routes)
 frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"

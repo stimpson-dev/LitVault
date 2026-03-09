@@ -59,6 +59,27 @@ async def list_documents(
     ]
 
 
+@router.get("/documents/duplicates")
+async def get_duplicates(
+    hash: str,
+    db: AsyncSession = Depends(get_db),
+) -> list[dict]:
+    result = await db.execute(
+        select(Document).where(Document.file_hash == hash)
+    )
+    docs = result.scalars().all()
+    return [
+        {
+            "id": doc.id,
+            "file_path": doc.file_path,
+            "file_hash": doc.file_hash,
+            "title": doc.title,
+            "created_at": doc.created_at,
+        }
+        for doc in docs
+    ]
+
+
 @router.get("/documents/{doc_id}")
 async def get_document(
     doc_id: int,
