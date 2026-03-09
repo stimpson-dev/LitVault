@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 2 (Document Parsing & Extraction) — COMPLETE
-- **Next Step**: `/gsd:plan-phase 3`
-- **Milestone**: M1 in progress (Phase 2/3 done)
+- **Phase**: 3 (Background Workers & Progress) — COMPLETE
+- **Next Step**: `/gsd:plan-phase 4`
+- **Milestone**: M1 COMPLETE (Phases 1-3 done)
 
 ## Completed
 - [x] PROJECT.md created
@@ -22,6 +22,9 @@
   - Plan 01: Folder crawler + SHA-256 incremental + thumbnails
   - Plan 02: PDF parser (pymupdf4llm + OCR), DOCX/PPTX parsers
   - Plan 03: IngestService pipeline + REST API (crawl, documents)
+- [x] Phase 3 executed: Background Workers & Progress
+  - Plan 01: Job models, JobStore, worker coroutine, progress callback
+  - Plan 02: SSE endpoint, file watcher, lifespan wiring, async crawl refactor
 
 ## Key Decisions
 - Stack: FastAPI + React + SQLite/FTS5 + Ollama/Qwen3
