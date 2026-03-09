@@ -1,0 +1,22 @@
+[project]
+name = "litvault"
+version = "0.1.0"
+description = "Local literature navigator for engineering documents"
+requires-python = ">=3.12"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]",
+    "sqlalchemy[asyncio]>=2.0",
+    "aiosqlite",
+    "alembic",
+    "pydantic-settings",
+    "pymupdf4llm",
+    "python-docx",
+    "python-pptx",
+    "pytesseract",
+    "langdetect",
+    "sentence-transformers",
+    "ollama",
+    "watchfiles",
+    "openpyxl",
+]

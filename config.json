@@ -1,0 +1,10 @@
+{
+  "watch_folders": [],
+  "ollama_url": "http://localhost:11434",
+  "ollama_model": "qwen3:8b",
+  "embedding_model": "nomic-ai/nomic-embed-text-v1.5",
+  "db_path": "litvault.db",
+  "thumbnails_dir": "thumbnails",
+  "log_level": "INFO",
+  "poll_interval_seconds": 10
+}
