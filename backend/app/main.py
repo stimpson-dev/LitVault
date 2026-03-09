@@ -16,6 +16,7 @@ from app.jobs.models import JobStore
 from app.jobs.worker import worker_loop
 from app.jobs.watcher import watch_folders
 from app.jobs.router import router as jobs_router, init_job_globals
+from app.settings.router import router as settings_router
 
 logger = logging.getLogger("litvault")
 
@@ -86,6 +87,7 @@ async def health():
 app.include_router(documents_router)
 app.include_router(jobs_router)
 app.include_router(search_router)
+app.include_router(settings_router)
 
 # Serve frontend static files in production (after all API routes)
 frontend_dist = Path(__file__).parent.parent.parent / "frontend" / "dist"

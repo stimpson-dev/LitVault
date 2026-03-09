@@ -55,3 +55,48 @@ export interface DocumentDetail extends SearchDocument {
   updated_at: string;
   indexed_at: string | null;
 }
+
+export interface TagItem {
+  id: number;
+  name: string;
+  source?: string;
+}
+
+export interface AppSettings {
+  watch_folders: string[];
+  ollama_url: string;
+  ollama_model: string;
+  db_path: string;
+  thumbnails_dir: string;
+  log_level: string;
+  poll_interval_seconds: number;
+}
+
+export interface JobProgress {
+  status: string;
+  current: number;
+  total: number;
+  message: string;
+  result: unknown;
+  error: string | null;
+}
+
+export interface Job {
+  id: string;
+  type: string;
+  status: string;
+  progress_current: number;
+  progress_total: number;
+  progress_message: string;
+  created_at: string;
+  started_at: string | null;
+  finished_at: string | null;
+  error: string | null;
+}
+
+export interface SavedSearch {
+  id: number;
+  name: string;
+  query: string;
+  created_at: string;
+}

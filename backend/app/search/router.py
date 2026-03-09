@@ -1,4 +1,8 @@
+import csv
+import io
+
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -55,6 +59,52 @@ async def search(
         "facets": result.facets,
         "query": q,
     }
+
+
+@router.get("/search/export")
+async def export_search_csv(
+    q: str = "",
+    category: str | None = None,
+    doc_type: str | None = None,
+    year_min: int | None = None,
+    year_max: int | None = None,
+    language: str | None = None,
+    author: str | None = None,
+    db: AsyncSession = Depends(get_db),
+) -> StreamingResponse:
+    filters = SearchFilters(
+        category=category,
+        doc_type=doc_type,
+        year_min=year_min,
+        year_max=year_max,
+        language=language,
+        author=author,
+    )
+    service = SearchService(db)
+    result = await service.search(q, filters, offset=0, limit=1000)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["title", "authors", "year", "doc_type", "source", "language", "file_path", "file_type", "file_size"])
+    for doc in result.documents:
+        writer.writerow([
+            doc.get("title", ""),
+            doc.get("authors", ""),
+            doc.get("year", ""),
+            doc.get("doc_type", ""),
+            doc.get("source", ""),
+            doc.get("language", ""),
+            doc.get("file_path", ""),
+            doc.get("file_type", ""),
+            doc.get("file_size", ""),
+        ])
+
+    output.seek(0)
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=litvault_export.csv"},
+    )
 
 
 @router.get("/search/facets")
