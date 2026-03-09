@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 6 (Frontend — Search UI) — COMPLETE
-- **Next Step**: `/gsd:plan-phase 7`
-- **Milestone**: M2 COMPLETE (Phases 4-5 done), M3 in progress
+- **Phase**: 7 (Tagging, Favorites & Polish) — COMPLETE
+- **Next Step**: Milestone M3 complete — v1 shipped!
+- **Milestone**: M3 COMPLETE (all 7 phases done)
 
 ## Completed
 - [x] PROJECT.md created
@@ -35,6 +35,11 @@
   - Plan 01: API client, types, useSearch hook, SearchBar, ResultsList
   - Plan 02: FilterSidebar with facets, FilterChips
   - Plan 03: DocumentDetail panel, App.tsx 3-column layout
+- [x] Phase 7 executed: Tagging, Favorites & Polish
+  - Plan 01: Backend APIs (favorites, tags, PATCH, settings, CSV export) + frontend API/types
+  - Plan 02: TagEditor, FavoriteButton, ReviewQueue, enhanced DocumentDetail
+  - Plan 03: JobProgress SSE, SavedSearches, SettingsPanel, ExportButton
+  - Plan 04: Toolbar + final App.tsx integration
 
 ## Key Decisions
 - Stack: FastAPI + React + SQLite/FTS5 + Ollama/Qwen3
