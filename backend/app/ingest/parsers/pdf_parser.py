@@ -9,7 +9,7 @@ import pymupdf4llm
 from PIL import Image
 import pytesseract
 
-from . import ParseResult
+from .models import ParseResult
 
 logger = logging.getLogger("litvault.parser.pdf")
 
