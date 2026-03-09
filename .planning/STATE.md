@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 1 (Foundation & Database) — COMPLETE
-- **Next Step**: `/gsd:plan-phase 2`
-- **Milestone**: M1 in progress (Phase 1/3 done)
+- **Phase**: 2 (Document Parsing & Extraction) — COMPLETE
+- **Next Step**: `/gsd:plan-phase 3`
+- **Milestone**: M1 in progress (Phase 2/3 done)
 
 ## Completed
 - [x] PROJECT.md created
@@ -18,6 +18,10 @@
   - Plan 02: Pydantic Settings config system
   - Plan 03: SQLAlchemy models, FTS5, Alembic migrations, 10 seed categories
   - Plan 04: FastAPI app with lifespan, health endpoint, CORS
+- [x] Phase 2 executed: Document Parsing & Extraction
+  - Plan 01: Folder crawler + SHA-256 incremental + thumbnails
+  - Plan 02: PDF parser (pymupdf4llm + OCR), DOCX/PPTX parsers
+  - Plan 03: IngestService pipeline + REST API (crawl, documents)
 
 ## Key Decisions
 - Stack: FastAPI + React + SQLite/FTS5 + Ollama/Qwen3
