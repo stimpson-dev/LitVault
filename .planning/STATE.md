@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 3 (Background Workers & Progress) — COMPLETE
-- **Next Step**: `/gsd:plan-phase 4`
-- **Milestone**: M1 COMPLETE (Phases 1-3 done)
+- **Phase**: 4 (AI Classification) — COMPLETE
+- **Next Step**: `/gsd:plan-phase 5`
+- **Milestone**: M2 in progress (Phase 4/5 done)
 
 ## Completed
 - [x] PROJECT.md created
@@ -25,6 +25,9 @@
 - [x] Phase 3 executed: Background Workers & Progress
   - Plan 01: Job models, JobStore, worker coroutine, progress callback
   - Plan 02: SSE endpoint, file watcher, lifespan wiring, async crawl refactor
+- [x] Phase 4 executed: AI Classification
+  - Plan 01: Ollama client, classification schemas/prompt, ClassificationService
+  - Plan 02: Pipeline integration (IngestService + Worker CLASSIFY jobs)
 
 ## Key Decisions
 - Stack: FastAPI + React + SQLite/FTS5 + Ollama/Qwen3
