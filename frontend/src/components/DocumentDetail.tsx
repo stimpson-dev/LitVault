@@ -142,8 +142,8 @@ export function DocumentDetail({ docId, onClose }: Props) {
 
   return (
     <div className="relative flex flex-col h-full">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-2 p-4 border-b border-zinc-800">
+      {/* Header — sticky at top */}
+      <div className="flex items-start justify-between gap-2 p-4 border-b border-zinc-800 sticky top-0 bg-zinc-950 z-10">
         <h2 className="text-sm font-semibold text-zinc-100 leading-snug flex-1">
           {loading ? 'Lade Dokument…' : (doc?.title ?? 'Kein Titel')}
         </h2>

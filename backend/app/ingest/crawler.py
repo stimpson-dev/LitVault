@@ -54,6 +54,8 @@ async def scan_folder(folder: str | Path) -> AsyncGenerator[dict, None]:
             path = Path(dirpath) / filename
             if path.suffix.lower() not in SUPPORTED_EXTENSIONS:
                 continue
+            if path.name.startswith("~$"):
+                continue  # Skip Office lock files
             try:
                 meta = await collect_file_meta(path)
                 yield meta
