@@ -1,0 +1,15 @@
+aiosqlite
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+pydantic-settings
+httpx
+langdetect
+PyMuPDF
+pymupdf4llm
+pytesseract
+Pillow
+python-docx
+python-pptx
+watchfiles

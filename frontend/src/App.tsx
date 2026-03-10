@@ -25,7 +25,7 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
+    <div className="h-screen bg-zinc-950 text-zinc-100 flex flex-col">
       {/* Top bar with search */}
       <header className="border-b border-zinc-800 p-4">
         <SearchBar
@@ -91,7 +91,7 @@ function App() {
                 total={search.results?.total}
                 loading={search.loading}
                 offset={search.offset}
-                onLoadMore={() => search.setOffset(search.offset + 50)}
+                onLoadMore={() => search.setOffset()}
                 onSelect={setSelectedDocId}
               />
             </>

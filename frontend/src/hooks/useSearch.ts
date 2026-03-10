@@ -1,40 +1,59 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { searchDocuments } from '@/lib/api';
-import type { SearchFilters, SearchResponse } from '@/lib/types';
+import type { SearchFilters, SearchResponse, SearchDocument } from '@/lib/types';
 
 export function useSearch() {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
-  const [results, setResults] = useState<SearchResponse | null>(null);
+  const [documents, setDocuments] = useState<SearchDocument[]>([]);
+  const [meta, setMeta] = useState<{ total: number; facets: SearchResponse['facets'] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [offset, setOffset] = useState(0);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Reset and fetch fresh when query/filters change
   useEffect(() => {
-    if (debounceTimer.current) {
-      clearTimeout(debounceTimer.current);
-    }
+    setOffset(0);
+    setDocuments([]);
+
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
 
     debounceTimer.current = setTimeout(() => {
       setLoading(true);
-      searchDocuments(query, filters, offset)
+      searchDocuments(query, filters, 0)
         .then((data) => {
-          setResults(data);
+          setDocuments(data.documents);
+          setMeta({ total: data.total, facets: data.facets });
         })
         .catch(() => {
-          setResults(null);
+          setDocuments([]);
+          setMeta(null);
         })
-        .finally(() => {
-          setLoading(false);
-        });
+        .finally(() => setLoading(false));
     }, 300);
 
     return () => {
-      if (debounceTimer.current) {
-        clearTimeout(debounceTimer.current);
-      }
+      if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [query, filters, offset]);
+  }, [query, filters]);
 
-  return { query, setQuery, filters, setFilters, results, loading, offset, setOffset };
+  // Load more: append results
+  const loadMore = useCallback(() => {
+    const nextOffset = documents.length;
+    setLoading(true);
+    searchDocuments(query, filters, nextOffset)
+      .then((data) => {
+        setDocuments((prev) => [...prev, ...data.documents]);
+        setMeta({ total: data.total, facets: data.facets });
+        setOffset(nextOffset);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [query, filters, documents.length]);
+
+  const results: SearchResponse | null = meta
+    ? { documents, total: meta.total, facets: meta.facets, query }
+    : null;
+
+  return { query, setQuery, filters, setFilters, results, loading, offset, setOffset: loadMore };
 }

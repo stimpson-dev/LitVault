@@ -46,25 +46,15 @@ async def lifespan(app: FastAPI):
     logger.info("LitVault started (worker + watcher active)")
     yield
 
-    # Shutdown: cancel watcher, drain queue, cancel worker
-    watcher_task.cancel()
-    try:
-        await asyncio.wait_for(watcher_task, timeout=5.0)
-    except (asyncio.CancelledError, asyncio.TimeoutError):
-        pass
-
-    if not queue.empty():
-        logger.info("Draining job queue...")
-        try:
-            await asyncio.wait_for(queue.join(), timeout=30.0)
-        except asyncio.TimeoutError:
-            logger.warning("Queue drain timeout, forcing shutdown")
-
+    # Shutdown: cancel everything immediately
+    logger.info("Shutting down...")
     worker_task.cancel()
-    try:
-        await asyncio.wait_for(worker_task, timeout=5.0)
-    except (asyncio.CancelledError, asyncio.TimeoutError):
-        pass
+    watcher_task.cancel()
+    for task in (worker_task, watcher_task):
+        try:
+            await asyncio.wait_for(task, timeout=2.0)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
 
     await engine.dispose()
     logger.info("LitVault stopped")

@@ -1,10 +1,9 @@
 {
   "watch_folders": [
-    "D:\\",
     "C:\\temp"
   ],
   "ollama_url": "http://localhost:11434",
-  "ollama_model": "qwen3:8b",
+  "ollama_model": "qwen3.5:9b",
   "embedding_model": "nomic-ai/nomic-embed-text-v1.5",
   "db_path": "litvault.db",
   "thumbnails_dir": "thumbnails",

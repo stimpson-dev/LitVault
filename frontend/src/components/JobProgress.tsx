@@ -82,7 +82,7 @@ export function JobProgress() {
         esRef.current = null;
         setActiveProgress(null);
       }
-    }, 5000);
+    }, 15000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);

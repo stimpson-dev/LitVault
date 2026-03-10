@@ -22,31 +22,24 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
         async with async_session_factory() as session:
             match job.type:
                 case JobType.CRAWL:
-                    ollama = OllamaClient(
-                        base_url=settings.ollama_url,
-                        model=settings.ollama_model,
+                    service = IngestService(session, settings, ollama=None)
+                    folder = job.payload["folder"]
+                    store.update_progress(job.id, 0, 0, f"Scanning: {folder}")
+
+                    def on_progress(current: int, total: int, message: str) -> None:
+                        store.update_progress(job.id, current, total, message)
+
+                    result = await service.ingest_folder(folder, on_progress=on_progress)
+                    store.complete_job(
+                        job.id,
+                        {
+                            "total_found": result.total_found,
+                            "new_files": result.new_files,
+                            "processed": result.processed,
+                            "errors": result.errors,
+                            "skipped": result.skipped,
+                        },
                     )
-                    try:
-                        service = IngestService(session, settings, ollama=ollama)
-                        folder = job.payload["folder"]
-                        store.update_progress(job.id, 0, 0, f"Scanning: {folder}")
-
-                        def on_progress(current: int, total: int, message: str) -> None:
-                            store.update_progress(job.id, current, total, message)
-
-                        result = await service.ingest_folder(folder, on_progress=on_progress)
-                        store.complete_job(
-                            job.id,
-                            {
-                                "total_found": result.total_found,
-                                "new_files": result.new_files,
-                                "processed": result.processed,
-                                "errors": result.errors,
-                                "skipped": result.skipped,
-                            },
-                        )
-                    finally:
-                        await ollama.close()
                 case JobType.CLASSIFY:
                     ollama = OllamaClient(
                         base_url=settings.ollama_url,
