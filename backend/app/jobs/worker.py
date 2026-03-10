@@ -28,11 +28,13 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
                     )
                     try:
                         service = IngestService(session, settings, ollama=ollama)
+                        folder = job.payload["folder"]
+                        store.update_progress(job.id, 0, 0, f"Scanning: {folder}")
 
                         def on_progress(current: int, total: int, message: str) -> None:
                             store.update_progress(job.id, current, total, message)
 
-                        result = await service.ingest_folder(job.payload["folder"], on_progress=on_progress)
+                        result = await service.ingest_folder(folder, on_progress=on_progress)
                         store.complete_job(
                             job.id,
                             {

@@ -117,8 +117,14 @@ class IngestService:
                 skipped=0,
             )
 
+        logger.info("Scanning folder: %s", folder)
+        if on_progress:
+            on_progress(0, 0, f"Scanning: {folder}")
         new_files = await find_new_files(folder, self.db)
         total_found = len(new_files)
+        logger.info("Found %d new/changed files in %s", total_found, folder)
+        if on_progress:
+            on_progress(0, total_found, f"Found {total_found} files in {folder}")
         processed = 0
         errors = 0
         skipped = 0
@@ -155,7 +161,7 @@ class IngestService:
                     try:
                         await self._apply_classification(doc, result.text)
                     except Exception as cls_err:
-                        logger.warning("Classification failed for %s: %s", meta["file_path"], cls_err)
+                        logger.warning("Classification failed for '%s': %s", Path(meta["file_path"]).name, cls_err)
 
                 await self.db.commit()
 
