@@ -6,24 +6,26 @@ logger = logging.getLogger("litvault.ollama")
 
 
 class OllamaClient:
-    def __init__(self, base_url: str = "http://localhost:11434", model: str = "qwen3:8b"):
+    def __init__(self, base_url: str = "http://localhost:11434", model: str = "qwen3:4b", num_ctx: int = 4096):
         self.base_url = base_url
         self.model = model
+        self.num_ctx = num_ctx
         self._client = httpx.AsyncClient(base_url=base_url, timeout=120.0)
 
     async def generate(self, prompt: str, json_schema: dict | None = None) -> dict:
-        # Try with structured schema first, fall back to plain JSON on 500 errors
+        # Use /api/chat with think:false to avoid Qwen3 thinking overhead
         for fmt in ([json_schema, "json"] if json_schema else ["json"]):
             body = {
                 "model": self.model,
-                "prompt": prompt,
+                "messages": [{"role": "user", "content": prompt}],
                 "stream": False,
-                "options": {"temperature": 0, "num_predict": 2048},
+                "think": False,
+                "options": {"temperature": 0, "num_predict": 2048, "num_ctx": self.num_ctx},
                 "format": fmt,
                 "keep_alive": -1,
             }
             try:
-                response = await self._client.post("/api/generate", json=body)
+                response = await self._client.post("/api/chat", json=body)
                 response.raise_for_status()
                 break
             except httpx.HTTPStatusError as exc:
@@ -37,7 +39,7 @@ class OllamaClient:
                 raise
 
         data = response.json()
-        raw = data["response"]
+        raw = data["message"]["content"]
 
         try:
             return json.loads(raw)

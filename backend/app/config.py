@@ -11,12 +11,14 @@ CONFIG_PATH = Path(__file__).parent.parent.parent / "config.json"
 class Settings(BaseSettings):
     watch_folders: list[str] = []
     ollama_url: str = "http://localhost:11434"
-    ollama_model: str = "qwen3:8b"
+    ollama_model: str = "qwen3:4b"
+    ollama_num_ctx: int = 4096
     embedding_model: str = "nomic-ai/nomic-embed-text-v1.5"
     db_path: str = "litvault.db"
     thumbnails_dir: str = "thumbnails"
     log_level: str = "INFO"
     poll_interval_seconds: int = 10
+    parse_timeout_seconds: int = 600
 
     model_config = SettingsConfigDict(
         json_file=CONFIG_PATH if CONFIG_PATH.exists() else None,

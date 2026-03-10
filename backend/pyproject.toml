@@ -20,4 +20,5 @@ dependencies = [
     "watchfiles",
     "openpyxl",
     "pymupdf-layout>=1.27.1",
+    "easyocr>=1.7.2",
 ]

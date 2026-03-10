@@ -7,6 +7,7 @@ from enum import Enum
 class JobType(str, Enum):
     CRAWL = "crawl"
     CLASSIFY = "classify"
+    RESCAN = "rescan"
 
 
 class JobStatus(str, Enum):
@@ -14,6 +15,7 @@ class JobStatus(str, Enum):
     PROCESSING = "processing"
     DONE = "done"
     ERROR = "error"
+    CANCELLED = "cancelled"
 
 
 @dataclass
@@ -70,3 +72,15 @@ class JobStore:
             job.status = JobStatus.ERROR
             job.error = error
             job.finished_at = datetime.now(timezone.utc).isoformat()
+
+    def cancel_job(self, job_id: str) -> bool:
+        job = self._jobs.get(job_id)
+        if job is not None and job.status in (JobStatus.QUEUED, JobStatus.PROCESSING):
+            job.status = JobStatus.CANCELLED
+            job.finished_at = datetime.now(timezone.utc).isoformat()
+            return True
+        return False
+
+    def is_cancelled(self, job_id: str) -> bool:
+        job = self._jobs.get(job_id)
+        return job is not None and job.status == JobStatus.CANCELLED

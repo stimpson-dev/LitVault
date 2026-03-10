@@ -1,6 +1,7 @@
 import asyncio
 import logging
 from datetime import datetime, timezone
+from pathlib import Path
 
 from sqlalchemy import select
 
@@ -29,7 +30,11 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
                     def on_progress(current: int, total: int, message: str) -> None:
                         store.update_progress(job.id, current, total, message)
 
-                    result = await service.ingest_folder(folder, on_progress=on_progress)
+                    result = await service.ingest_folder(
+                        folder,
+                        on_progress=on_progress,
+                        is_cancelled=lambda: store.is_cancelled(job.id),
+                    )
                     store.complete_job(
                         job.id,
                         {
@@ -44,6 +49,7 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
                     ollama = OllamaClient(
                         base_url=settings.ollama_url,
                         model=settings.ollama_model,
+                        num_ctx=settings.ollama_num_ctx,
                     )
                     try:
                         doc_id = job.payload.get("document_id")
@@ -82,6 +88,41 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
                             store.complete_job(job.id, {"classified": classified, "total": len(docs)})
                     finally:
                         await ollama.close()
+                case JobType.RESCAN:
+                    doc_id = job.payload["document_id"]
+                    file_path = job.payload["file_path"]
+                    file_type = job.payload["file_type"]
+
+                    result = await session.execute(
+                        select(Document).where(Document.id == doc_id)
+                    )
+                    doc = result.scalar_one_or_none()
+                    if not doc:
+                        store.fail_job(job.id, f"Document {doc_id} not found")
+                    else:
+                        from app.ingest.parsers import parse_document
+                        from app.classification.filename_extractor import extract_from_filename
+
+                        parse_result = await parse_document(Path(file_path), file_type)
+                        if parse_result.error:
+                            doc.processing_status = "error"
+                            doc.summary = parse_result.error
+                            store.fail_job(job.id, parse_result.error)
+                        else:
+                            doc.full_text = parse_result.text
+                            doc.has_text = parse_result.has_text
+                            doc.processing_status = "done"
+
+                            fname_meta = extract_from_filename(Path(file_path).name)
+                            if fname_meta.title and not doc.title:
+                                doc.title = fname_meta.title
+                            if fname_meta.year and not doc.year:
+                                doc.year = fname_meta.year
+                            if fname_meta.doc_type and not doc.doc_type:
+                                doc.doc_type = fname_meta.doc_type
+
+                            store.complete_job(job.id, {"rescanned": True})
+                        await session.commit()
                 case _:
                     store.fail_job(job.id, f"Unknown job type: {job.type}")
     except Exception as e:

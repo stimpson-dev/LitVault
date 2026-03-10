@@ -28,6 +28,8 @@ export interface SearchFilters {
   year_max?: number;
   language?: string;
   author?: string;
+  file_type?: string;
+  processing_status?: string;
 }
 
 export interface FacetItem {
@@ -39,6 +41,8 @@ export interface SearchFacets {
   categories: FacetItem[];
   doc_types: FacetItem[];
   years: FacetItem[];
+  file_types: FacetItem[];
+  statuses: FacetItem[];
 }
 
 export interface SearchResponse {
@@ -51,6 +55,7 @@ export interface SearchResponse {
 export interface DocumentDetail extends SearchDocument {
   file_hash: string;
   mtime: number | null;
+  page_count: number | null;
   doi: string | null;
   updated_at: string;
   indexed_at: string | null;
@@ -92,6 +97,16 @@ export interface Job {
   started_at: string | null;
   finished_at: string | null;
   error: string | null;
+}
+
+export interface DashboardStats {
+  total: number;
+  by_status: { done: number; error: number; processing: number };
+  by_classification: { ai: number; filename: number; user: number; none: number };
+  has_text: { yes: number; no: number };
+  needs_ai: number;
+  needs_ocr: number;
+  errors: number;
 }
 
 export interface SavedSearch {

@@ -8,6 +8,7 @@ from typing import Callable
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.classification.filename_extractor import extract_from_filename
 from app.classification.ollama_client import OllamaClient
 from app.classification.service import ClassificationService, detect_language
 from app.config import Settings
@@ -105,6 +106,7 @@ class IngestService:
         self,
         folder: str,
         on_progress: Callable[[int, int, str], None] | None = None,
+        is_cancelled: Callable[[], bool] | None = None,
     ) -> IngestResult:
         folder_path = Path(folder)
         if not folder_path.is_dir():
@@ -130,6 +132,9 @@ class IngestService:
         skipped = 0
 
         for idx, meta in enumerate(new_files):
+            if is_cancelled and is_cancelled():
+                logger.info("Crawl cancelled after %d/%d files", idx, total_found)
+                break
             try:
                 doc = await self._upsert_document(meta)
                 doc.processing_status = "processing"
@@ -145,6 +150,7 @@ class IngestService:
                 else:
                     doc.full_text = result.text
                     doc.has_text = result.has_text
+                    doc.page_count = result.page_count
                     doc.processing_status = "done"
                     doc.indexed_at = datetime.now(timezone.utc).isoformat()
                     processed += 1
@@ -156,6 +162,17 @@ class IngestService:
                         )
                         if thumb_path is not None:
                             logger.debug("Thumbnail generated: %s", thumb_path)
+
+                    # Apply filename-based metadata as baseline (AI can override below)
+                    meta_from_name = extract_from_filename(Path(meta["file_path"]).name)
+                    if meta_from_name.title and not doc.title:
+                        doc.title = meta_from_name.title
+                    if meta_from_name.year and not doc.year:
+                        doc.year = meta_from_name.year
+                    if meta_from_name.doc_type and not doc.doc_type:
+                        doc.doc_type = meta_from_name.doc_type
+                    if not doc.classification_source:
+                        doc.classification_source = "filename"
 
                     # Classify document
                     try:

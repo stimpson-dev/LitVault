@@ -1,9 +1,13 @@
 {
   "watch_folders": [
-    "C:\\temp"
+    "D:\\FVA-Berichte",
+    "D:\\Literatur",
+    "Z:\\",
+    "T:\\Technologie\\ZTV\\Literatur"
   ],
   "ollama_url": "http://localhost:11434",
-  "ollama_model": "qwen3.5:9b",
+  "ollama_model": "qwen3:4b",
+  "ollama_num_ctx": 4096,
   "embedding_model": "nomic-ai/nomic-embed-text-v1.5",
   "db_path": "litvault.db",
   "thumbnails_dir": "thumbnails",

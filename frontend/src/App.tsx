@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useSearch } from './hooks/useSearch';
+import { useTheme } from './hooks/useTheme';
 import { SearchBar } from './components/SearchBar';
 import { FilterSidebar } from './components/FilterSidebar';
 import { FilterChips } from './components/FilterChips';
@@ -10,13 +11,17 @@ import { JobProgress } from './components/JobProgress';
 import { SettingsPanel } from './components/SettingsPanel';
 import { SavedSearches } from './components/SavedSearches';
 import { ReviewQueue } from './components/ReviewQueue';
+import { StatsPanel } from './components/StatsPanel';
 
 function App() {
   const search = useSearch();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [showReviewQueue, setShowReviewQueue] = useState(false);
   const [showSavedSearches, setShowSavedSearches] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showJobs, setShowJobs] = useState(false);
 
   const handleLoadSearch = (query: string, filters: typeof search.filters) => {
     search.setQuery(query);
@@ -41,9 +46,13 @@ function App() {
           onOpenSettings={() => setShowSettings(true)}
           onOpenReviewQueue={() => setShowReviewQueue(!showReviewQueue)}
           onOpenSavedSearches={() => setShowSavedSearches(!showSavedSearches)}
+          onOpenStats={() => setShowStats(!showStats)}
+          onOpenJobs={() => setShowJobs(!showJobs)}
           query={search.query}
           filters={search.filters}
           resultCount={search.results?.total}
+          theme={theme}
+          onToggleTheme={toggleTheme}
         />
 
         {/* Saved searches dropdown */}
@@ -55,6 +64,20 @@ function App() {
               onLoadSearch={handleLoadSearch}
               onClose={() => setShowSavedSearches(false)}
             />
+          </div>
+        )}
+
+        {/* Stats panel dropdown */}
+        {showStats && (
+          <div className="absolute top-full left-0 z-40 mt-1 ml-4">
+            <StatsPanel onClose={() => setShowStats(false)} />
+          </div>
+        )}
+
+        {/* Jobs panel dropdown */}
+        {showJobs && (
+          <div className="absolute top-full left-0 z-40 mt-1 ml-4">
+            <JobProgress onClose={() => setShowJobs(false)} />
           </div>
         )}
       </div>
@@ -114,8 +137,6 @@ function App() {
         <SettingsPanel onClose={() => setShowSettings(false)} />
       )}
 
-      {/* Job progress indicator */}
-      <JobProgress />
     </div>
   );
 }

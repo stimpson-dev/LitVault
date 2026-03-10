@@ -15,6 +15,24 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   article: "Artikel",
 }
 
+const FILE_TYPE_LABELS: Record<string, string> = {
+  ".pdf": "PDF",
+  ".docx": "Word (DOCX)",
+  ".pptx": "PowerPoint (PPTX)",
+  ".txt": "Text",
+  ".doc": "Word (DOC)",
+  ".ppt": "PowerPoint (PPT)",
+  ".xlsx": "Excel (XLSX)",
+  ".xls": "Excel (XLS)",
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  done: "Fertig",
+  error: "Fehler",
+  processing: "Verarbeitung",
+  pending: "Wartend",
+}
+
 export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebarProps) {
   if (!facets) return null
 
@@ -39,6 +57,20 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
       ...filters,
       year_min: isSelected ? undefined : yearNum,
       year_max: isSelected ? undefined : yearNum,
+    })
+  }
+
+  function handleFileTypeClick(name: string) {
+    onFilterChange({
+      ...filters,
+      file_type: filters.file_type === name ? undefined : name,
+    })
+  }
+
+  function handleProcessingStatusClick(name: string) {
+    onFilterChange({
+      ...filters,
+      processing_status: filters.processing_status === name ? undefined : name,
     })
   }
 
@@ -100,7 +132,7 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
       )}
 
       {facets.years.length > 0 && (
-        <div className="p-4">
+        <div className="border-b border-zinc-800 p-4">
           <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
             Jahr
           </h3>
@@ -118,6 +150,62 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
                     }`}
                   >
                     <span>{item.name}</span>
+                    <span className="text-xs text-zinc-500">{item.count}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {facets.file_types.length > 0 && (
+        <div className="border-b border-zinc-800 p-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            Dateityp
+          </h3>
+          <ul className="flex flex-col gap-0.5">
+            {facets.file_types.map((item) => {
+              const isSelected = filters.file_type === item.name
+              const label = FILE_TYPE_LABELS[item.name] ?? item.name
+              return (
+                <li key={item.name}>
+                  <button
+                    type="button"
+                    onClick={() => handleFileTypeClick(item.name)}
+                    className={`flex w-full cursor-pointer items-center justify-between rounded px-3 py-1.5 hover:bg-zinc-800 ${
+                      isSelected ? "bg-zinc-700 text-white" : ""
+                    }`}
+                  >
+                    <span>{label}</span>
+                    <span className="text-xs text-zinc-500">{item.count}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
+      {facets.statuses.length > 0 && (
+        <div className="p-4">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+            Status
+          </h3>
+          <ul className="flex flex-col gap-0.5">
+            {facets.statuses.map((item) => {
+              const isSelected = filters.processing_status === item.name
+              const label = STATUS_LABELS[item.name] ?? item.name
+              return (
+                <li key={item.name}>
+                  <button
+                    type="button"
+                    onClick={() => handleProcessingStatusClick(item.name)}
+                    className={`flex w-full cursor-pointer items-center justify-between rounded px-3 py-1.5 hover:bg-zinc-800 ${
+                      isSelected ? "bg-zinc-700 text-white" : ""
+                    }`}
+                  >
+                    <span>{label}</span>
                     <span className="text-xs text-zinc-500">{item.count}</span>
                   </button>
                 </li>

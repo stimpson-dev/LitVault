@@ -30,7 +30,8 @@ def sanitize_fts5_query_with_prefix(query: str) -> str:
     if not query:
         return ""
     words = query.split()
-    # Quote all words; append * to the last term for prefix matching
+    # Quote all words except the last; last term gets * for prefix matching (unquoted)
     quoted = [f'"{word}"' for word in words[:-1]]
-    quoted.append(f'"{words[-1]}"*')
+    # FTS5 prefix requires unquoted token: word* (not "word"*)
+    quoted.append(f"{words[-1]}*")
     return " ".join(quoted)

@@ -5,7 +5,7 @@ echo Starting LitVault...
 echo.
 
 :: Backend starten (neues Fenster)
-start "LitVault Backend" cmd /k "cd /d C:\Coding\LitVault\backend && uv run uvicorn app.main:app --reload --port 8000"
+start "LitVault Backend" cmd /k "cd /d C:\Coding\LitVault\backend && .venv\Scripts\python -m uvicorn app.main:app --reload --port 8000"
 
 :: Kurz warten bis Backend bereit ist
 ping -n 4 127.0.0.1 >nul

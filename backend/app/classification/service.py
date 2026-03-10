@@ -81,22 +81,10 @@ class ClassificationService:
         prompt = build_prompt(truncated)
         schema = ClassificationResult.model_json_schema()
 
-        try:
-            raw = await self.ollama.generate(prompt, json_schema=schema)
-            result = ClassificationResult.model_validate(raw)
-            result.confidence = max(0.0, min(1.0, result.confidence))
-            return result
-        except Exception as exc:
-            logger.error("Classification failed for '%s': %s", filename, exc)
-            return ClassificationResult(
-                doc_type="artikel",
-                categories=[],
-                tags=[],
-                summary="",
-                title=filename,
-                authors=[],
-                confidence=0.0,
-            )
+        raw = await self.ollama.generate(prompt, json_schema=schema)
+        result = ClassificationResult.model_validate(raw)
+        result.confidence = max(0.0, min(1.0, result.confidence))
+        return result
 
     def get_confidence_tier(self, confidence: float) -> str:
         if confidence >= CONFIDENCE_AUTO:

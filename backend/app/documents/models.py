@@ -23,6 +23,7 @@ class Document(Base):
     language = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
     full_text = Column(Text, nullable=True)
+    page_count = Column(Integer, nullable=True)
     has_text = Column(Boolean, default=False, nullable=False)
     doi = Column(String, nullable=True)
     processing_status = Column(String, default="pending", nullable=False)  # pending/processing/done/error

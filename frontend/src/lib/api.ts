@@ -1,4 +1,4 @@
-import type { SearchDocument, SearchResponse, SearchFilters, DocumentDetail, SearchFacets, TagItem, AppSettings, Job, SavedSearch } from './types';
+import type { SearchDocument, SearchResponse, SearchFilters, DocumentDetail, SearchFacets, TagItem, AppSettings, Job, SavedSearch, DashboardStats } from './types';
 
 const BASE = '/api';
 
@@ -16,6 +16,8 @@ export async function searchDocuments(
   if (filters.year_max) params.set('year_max', String(filters.year_max));
   if (filters.language) params.set('language', filters.language);
   if (filters.author) params.set('author', filters.author);
+  if (filters.file_type) params.set('file_type', filters.file_type);
+  if (filters.processing_status) params.set('processing_status', filters.processing_status);
   params.set('offset', String(offset));
   params.set('limit', String(limit));
 
@@ -114,6 +116,12 @@ export async function listJobs(status?: string): Promise<Job[]> {
   return res.json() as Promise<Job[]>;
 }
 
+export async function cancelJob(jobId: string): Promise<{ cancelled: boolean }> {
+  const res = await fetch(`${BASE}/jobs/${jobId}/cancel`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Cancel job failed: ${res.status}`);
+  return res.json() as Promise<{ cancelled: boolean }>;
+}
+
 // Saved searches
 export async function createSavedSearch(name: string, query: string): Promise<SavedSearch> {
   const res = await fetch(`${BASE}/saved-searches`, {
@@ -136,6 +144,44 @@ export async function deleteSavedSearch(id: number): Promise<void> {
   if (!res.ok) throw new Error(`Delete saved search failed: ${res.status}`);
 }
 
+// Classify
+export async function classifyDocument(docId: number): Promise<{ job_id: string }> {
+  const res = await fetch(`${BASE}/documents/${docId}/classify`, { method: 'POST' });
+  if (!res.ok) throw new Error('Classify failed');
+  return res.json() as Promise<{ job_id: string }>;
+}
+
+export async function classifyBatch(): Promise<{ job_id: string }> {
+  const res = await fetch(`${BASE}/documents/classify-batch`, { method: 'POST' });
+  if (!res.ok) throw new Error('Batch classify failed');
+  return res.json() as Promise<{ job_id: string }>;
+}
+
+// Rescan
+export async function rescanDocument(docId: number): Promise<{ job_id: string }> {
+  const res = await fetch(`${BASE}/documents/${docId}/rescan`, { method: 'POST' });
+  if (!res.ok) throw new Error('Rescan failed');
+  return res.json() as Promise<{ job_id: string }>;
+}
+
+export async function rescanAllErrors(): Promise<{ queued: number }> {
+  const res = await fetch(`${BASE}/documents/rescan-errors`, { method: 'POST' });
+  if (!res.ok) throw new Error('Batch rescan failed');
+  return res.json() as Promise<{ queued: number }>;
+}
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const res = await fetch(`${BASE}/stats`);
+  if (!res.ok) throw new Error(`Stats fetch failed: ${res.status}`);
+  return res.json() as Promise<DashboardStats>;
+}
+
+export async function rescanNoText(): Promise<{ queued: number }> {
+  const res = await fetch(`${BASE}/documents/rescan-no-text`, { method: 'POST' });
+  if (!res.ok) throw new Error('Rescan no-text failed');
+  return res.json() as Promise<{ queued: number }>;
+}
+
 // CSV export
 export function getExportUrl(query: string, filters: SearchFilters): string {
   const params = new URLSearchParams();
@@ -146,5 +192,7 @@ export function getExportUrl(query: string, filters: SearchFilters): string {
   if (filters.year_max) params.set('year_max', String(filters.year_max));
   if (filters.language) params.set('language', filters.language);
   if (filters.author) params.set('author', filters.author);
+  if (filters.file_type) params.set('file_type', filters.file_type);
+  if (filters.processing_status) params.set('processing_status', filters.processing_status);
   return `${BASE}/search/export?${params}`;
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, Pencil } from 'lucide-react';
-import { getDocument, updateDocument } from '@/lib/api';
+import { X, Loader2, Pencil, FolderOpen } from 'lucide-react';
+import { getDocument, updateDocument, classifyDocument, rescanDocument } from '@/lib/api';
 import type { DocumentDetail as DocumentDetailType } from '@/lib/types';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { TagEditor } from '@/components/TagEditor';
@@ -35,11 +35,15 @@ export function DocumentDetail({ docId, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
   const [editValue, setEditValue] = useState('');
+  const [classifyFeedback, setClassifyFeedback] = useState<string | null>(null);
+  const [rescanFeedback, setRescanFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     setLoading(true);
     setDoc(null);
     setEditingField(null);
+    setClassifyFeedback(null);
+    setRescanFeedback(null);
     getDocument(docId)
       .then((data) => {
         setDoc(data);
@@ -234,6 +238,9 @@ export function DocumentDetail({ docId, onClose }: Props) {
               <span className="text-zinc-500">Dateityp</span>
               <span className="text-zinc-200">{doc.file_type}</span>
 
+              <span className="text-zinc-500">Seiten</span>
+              <span className="text-zinc-200">{doc.page_count ?? '—'}</span>
+
               <span className="text-zinc-500">Größe</span>
               <span className="text-zinc-200">
                 {doc.file_size !== null ? formatFileSize(doc.file_size) : '—'}
@@ -264,6 +271,21 @@ export function DocumentDetail({ docId, onClose }: Props) {
               </span>
             </div>
           </div>
+
+          {/* Thumbnail Preview */}
+          {(doc.file_type === 'pdf' || doc.file_type === '.pdf') && (
+            <div className="p-4 border-b border-zinc-800">
+              <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+                Vorschau
+              </h3>
+              <img
+                src={`/api/documents/${doc.id}/thumbnail`}
+                alt="Vorschau"
+                className="rounded border border-zinc-700 bg-zinc-900 max-w-full"
+                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+              />
+            </div>
+          )}
 
           {/* Tags */}
           <div className="p-4 border-b border-zinc-800">
@@ -306,6 +328,55 @@ export function DocumentDetail({ docId, onClose }: Props) {
             )}
           </div>
 
+          {/* KI-Analyse */}
+          {doc.processing_status !== 'processing' && (
+            <div className="p-4 border-b border-zinc-800">
+              <button
+                onClick={async () => {
+                  setClassifyFeedback(null);
+                  try {
+                    const { job_id } = await classifyDocument(doc.id);
+                    setClassifyFeedback('Analyse läuft…');
+                    // Poll job status until done
+                    const poll = setInterval(async () => {
+                      try {
+                        const res = await fetch(`/api/jobs/${job_id}`);
+                        if (!res.ok) { clearInterval(poll); return; }
+                        const job = await res.json();
+                        if (job.status === 'done') {
+                          clearInterval(poll);
+                          setClassifyFeedback('Analyse abgeschlossen');
+                          const updated = await getDocument(doc.id);
+                          setDoc(updated);
+                        } else if (job.status === 'error') {
+                          clearInterval(poll);
+                          setClassifyFeedback(`Analyse fehlgeschlagen: ${job.error ?? 'Unbekannter Fehler'}`);
+                        }
+                      } catch {
+                        clearInterval(poll);
+                      }
+                    }, 2000);
+                  } catch {
+                    setClassifyFeedback('Fehler beim Starten der Analyse');
+                  }
+                }}
+                className="text-xs px-3 py-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors"
+              >
+                {classifyFeedback === 'Analyse läuft…' ? (
+                  <span className="flex items-center gap-1.5">
+                    <Loader2 size={12} className="animate-spin" />
+                    Analyse läuft…
+                  </span>
+                ) : (
+                  doc.classification_source ? 'KI-Analyse wiederholen' : 'KI-Analyse starten'
+                )}
+              </button>
+              {classifyFeedback && classifyFeedback !== 'Analyse läuft…' && (
+                <span className="ml-3 text-xs text-zinc-400">{classifyFeedback}</span>
+              )}
+            </div>
+          )}
+
           {/* File path */}
           <div className="p-4">
             <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
@@ -314,7 +385,38 @@ export function DocumentDetail({ docId, onClose }: Props) {
             <p className="text-xs font-mono bg-zinc-800 p-2 rounded break-all text-zinc-300">
               {doc.file_path}
             </p>
-            <p className="mt-1 text-xs text-zinc-500">Im Explorer öffnen</p>
+            <button
+              onClick={async () => {
+                try {
+                  await fetch(`/api/documents/${doc.id}/open-folder`, { method: 'POST' });
+                } catch { /* ignore */ }
+              }}
+              className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              <FolderOpen size={13} />
+              Im Explorer öffnen
+            </button>
+            {doc.processing_status === 'error' && (
+              <div className="mt-3 flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    setRescanFeedback(null);
+                    try {
+                      await rescanDocument(doc.id);
+                      setRescanFeedback('Scan gestartet');
+                    } catch {
+                      setRescanFeedback('Fehler beim Starten des Scans');
+                    }
+                  }}
+                  className="text-xs px-3 py-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors"
+                >
+                  Erneut scannen
+                </button>
+                {rescanFeedback && (
+                  <span className="text-xs text-zinc-400">{rescanFeedback}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
       ) : (

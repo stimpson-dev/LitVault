@@ -4,7 +4,7 @@ from dataclasses import dataclass, field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.search.sanitizer import sanitize_fts5_query
+from app.search.sanitizer import sanitize_fts5_query_with_prefix as sanitize_fts5_query
 
 logger = logging.getLogger("litvault.search")
 
@@ -18,6 +18,8 @@ class SearchFilters:
     language: str | None = None
     author: str | None = None
     has_text: bool | None = None
+    file_type: str | None = None
+    processing_status: str | None = None
 
 
 @dataclass
@@ -70,6 +72,14 @@ class SearchService:
             filter_clauses.append("AND d.has_text = :has_text")
             params["has_text"] = filters.has_text
 
+        if filters.file_type is not None:
+            filter_clauses.append("AND d.file_type = :file_type")
+            params["file_type"] = filters.file_type
+
+        if filters.processing_status is not None:
+            filter_clauses.append("AND d.processing_status = :processing_status")
+            params["processing_status"] = filters.processing_status
+
         if filters.category is not None:
             filter_clauses.append(
                 "AND d.id IN ("
@@ -92,7 +102,7 @@ class SearchService:
                 " d.created_at, d.updated_at, d.indexed_at,"
                 " snippet(documents_fts, 0, '<mark>', '</mark>', '...', 32) as title_snippet,"
                 " snippet(documents_fts, 2, '<mark>', '</mark>', '...', 64) as text_snippet,"
-                " bm25(documents_fts, 10.0, 5.0, 1.0, 2.0) as rank"
+                " bm25(documents_fts, 10.0, 5.0, 1.0, 2.0, 8.0) as rank"
                 " FROM documents_fts"
                 " JOIN documents d ON d.id = documents_fts.rowid"
                 " WHERE documents_fts MATCH :query"
@@ -110,14 +120,14 @@ class SearchService:
             select_sql = (
                 "SELECT d.*, NULL as title_snippet, NULL as text_snippet, 0 as rank"
                 " FROM documents d"
-                " WHERE d.processing_status = 'done'"
+                " WHERE 1=1"
                 f" {filter_sql}"
                 " ORDER BY d.created_at DESC"
             )
             count_sql = (
                 "SELECT COUNT(*)"
                 " FROM documents d"
-                " WHERE d.processing_status = 'done'"
+                " WHERE 1=1"
                 f" {filter_sql}"
             )
 
@@ -177,6 +187,14 @@ class SearchService:
             filter_clauses.append("AND d.has_text = :has_text")
             params["has_text"] = filters.has_text
 
+        if filters.file_type is not None:
+            filter_clauses.append("AND d.file_type = :file_type")
+            params["file_type"] = filters.file_type
+
+        if filters.processing_status is not None:
+            filter_clauses.append("AND d.processing_status = :processing_status")
+            params["processing_status"] = filters.processing_status
+
         if filters.category is not None:
             filter_clauses.append(
                 "AND d.id IN ("
@@ -217,7 +235,7 @@ class SearchService:
         )
 
         doc_type_sql = (
-            "SELECT d.doc_type, COUNT(*) as count"
+            "SELECT d.doc_type AS name, COUNT(*) as count"
             " FROM documents d"
             " WHERE d.processing_status = 'done'"
             " AND d.doc_type IS NOT NULL"
@@ -227,7 +245,7 @@ class SearchService:
         )
 
         year_sql = (
-            "SELECT d.year, COUNT(*) as count"
+            "SELECT d.year AS name, COUNT(*) as count"
             " FROM documents d"
             " WHERE d.processing_status = 'done'"
             " AND d.year IS NOT NULL"
@@ -236,7 +254,26 @@ class SearchService:
             " GROUP BY d.year ORDER BY d.year DESC"
         )
 
-        facets: dict = {"categories": [], "doc_types": [], "years": []}
+        file_type_sql = (
+            "SELECT d.file_type AS name, COUNT(*) as count"
+            " FROM documents d"
+            " WHERE 1=1"
+            f" {fts_subquery}"
+            f" {filter_sql}"
+            " AND d.file_type IS NOT NULL"
+            " GROUP BY d.file_type ORDER BY count DESC"
+        )
+
+        status_sql = (
+            "SELECT d.processing_status AS name, COUNT(*) as count"
+            " FROM documents d"
+            " WHERE 1=1"
+            f" {fts_subquery}"
+            f" {filter_sql}"
+            " GROUP BY d.processing_status ORDER BY count DESC"
+        )
+
+        facets: dict = {"categories": [], "doc_types": [], "years": [], "file_types": [], "statuses": []}
 
         try:
             cat_rows = await self.db.execute(text(category_sql), params)
@@ -247,6 +284,12 @@ class SearchService:
 
             yr_rows = await self.db.execute(text(year_sql), params)
             facets["years"] = [dict(row._mapping) for row in yr_rows]
+
+            ft_rows = await self.db.execute(text(file_type_sql), params)
+            facets["file_types"] = [dict(row._mapping) for row in ft_rows]
+
+            st_rows = await self.db.execute(text(status_sql), params)
+            facets["statuses"] = [dict(row._mapping) for row in st_rows]
         except Exception as exc:
             logger.error("Facet query failed: %s", exc)
 

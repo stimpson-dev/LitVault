@@ -39,6 +39,8 @@ async def search(
     year_max: int | None = None,
     language: str | None = None,
     author: str | None = None,
+    file_type: str | None = None,
+    processing_status: str | None = None,
     offset: int = 0,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
@@ -50,6 +52,8 @@ async def search(
         year_max=year_max,
         language=language,
         author=author,
+        file_type=file_type,
+        processing_status=processing_status,
     )
     service = SearchService(db)
     result = await service.search(q, filters, offset, limit)
@@ -70,6 +74,8 @@ async def export_search_csv(
     year_max: int | None = None,
     language: str | None = None,
     author: str | None = None,
+    file_type: str | None = None,
+    processing_status: str | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     filters = SearchFilters(
@@ -79,6 +85,8 @@ async def export_search_csv(
         year_max=year_max,
         language=language,
         author=author,
+        file_type=file_type,
+        processing_status=processing_status,
     )
     service = SearchService(db)
     result = await service.search(q, filters, offset=0, limit=1000)
@@ -116,6 +124,8 @@ async def search_facets(
     year_max: int | None = None,
     language: str | None = None,
     author: str | None = None,
+    file_type: str | None = None,
+    processing_status: str | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     filters = SearchFilters(
@@ -125,6 +135,8 @@ async def search_facets(
         year_max=year_max,
         language=language,
         author=author,
+        file_type=file_type,
+        processing_status=processing_status,
     )
     service = SearchService(db)
     facets = await service.get_facets(query=q, filters=filters)

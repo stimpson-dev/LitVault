@@ -1,8 +1,11 @@
+import subprocess
+import sys
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
-from sqlalchemy import select, delete
+from sqlalchemy import select, delete, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.deps import get_db
@@ -25,6 +28,49 @@ class DocumentUpdate(BaseModel):
     source: str | None = None
     language: str | None = None
     summary: str | None = None
+
+
+@router.get("/stats")
+async def get_stats(db: AsyncSession = Depends(get_db)) -> dict:
+    """Return aggregate counts for the dashboard overview."""
+    rows = await db.execute(text("""
+        SELECT
+            COUNT(*) AS total,
+            SUM(CASE WHEN processing_status = 'done' THEN 1 ELSE 0 END) AS done,
+            SUM(CASE WHEN processing_status = 'error' THEN 1 ELSE 0 END) AS error,
+            SUM(CASE WHEN processing_status = 'processing' THEN 1 ELSE 0 END) AS processing,
+            SUM(CASE WHEN classification_source = 'ai' THEN 1 ELSE 0 END) AS cls_ai,
+            SUM(CASE WHEN classification_source = 'filename' THEN 1 ELSE 0 END) AS cls_filename,
+            SUM(CASE WHEN classification_source = 'user' THEN 1 ELSE 0 END) AS cls_user,
+            SUM(CASE WHEN classification_source IS NULL THEN 1 ELSE 0 END) AS cls_none,
+            SUM(CASE WHEN has_text = 1 THEN 1 ELSE 0 END) AS has_text_yes,
+            SUM(CASE WHEN has_text = 0 THEN 1 ELSE 0 END) AS has_text_no,
+            SUM(CASE WHEN processing_status = 'done' AND has_text = 1 AND (classification_source IS NULL OR classification_source != 'ai') THEN 1 ELSE 0 END) AS needs_ai,
+            SUM(CASE WHEN processing_status = 'done' AND has_text = 0 AND (classification_source = 'filename' OR classification_source IS NULL) THEN 1 ELSE 0 END) AS needs_ocr
+        FROM documents
+    """))
+    r = rows.mappings().one()
+    return {
+        "total": r["total"] or 0,
+        "by_status": {
+            "done": r["done"] or 0,
+            "error": r["error"] or 0,
+            "processing": r["processing"] or 0,
+        },
+        "by_classification": {
+            "ai": r["cls_ai"] or 0,
+            "filename": r["cls_filename"] or 0,
+            "user": r["cls_user"] or 0,
+            "none": r["cls_none"] or 0,
+        },
+        "has_text": {
+            "yes": r["has_text_yes"] or 0,
+            "no": r["has_text_no"] or 0,
+        },
+        "needs_ai": r["needs_ai"] or 0,
+        "needs_ocr": r["needs_ocr"] or 0,
+        "errors": r["error"] or 0,
+    }
 
 
 @router.post("/crawl")
@@ -113,6 +159,7 @@ async def get_document(
         "source": doc.source,
         "language": doc.language,
         "summary": doc.summary,
+        "page_count": doc.page_count,
         "has_text": doc.has_text,
         "doi": doc.doi,
         "processing_status": doc.processing_status,
@@ -154,6 +201,7 @@ async def update_document(
         "source": doc.source,
         "language": doc.language,
         "summary": doc.summary,
+        "page_count": doc.page_count,
         "has_text": doc.has_text,
         "doi": doc.doi,
         "processing_status": doc.processing_status,
@@ -163,6 +211,171 @@ async def update_document(
         "updated_at": doc.updated_at,
         "indexed_at": doc.indexed_at,
     }
+
+
+@router.get("/documents/{doc_id}/thumbnail")
+async def get_document_thumbnail(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
+    """Serve the thumbnail image for a document."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    thumb_path = Path("thumbnails") / f"{Path(doc.file_path).stem}_thumb.jpg"
+    if not thumb_path.exists():
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+    return FileResponse(path=str(thumb_path), media_type="image/jpeg")
+
+
+@router.post("/documents/{doc_id}/open-folder")
+async def open_document_folder(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Open the file's parent folder in the system file explorer and select the file."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    file_path = Path(doc.file_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    if sys.platform == "win32":
+        subprocess.Popen(["explorer", "/select,", str(file_path)])
+    return {"opened": True}
+
+
+@router.post("/documents/{doc_id}/classify")
+async def classify_document(doc_id: int, db: AsyncSession = Depends(get_db)) -> dict:
+    """Queue AI classification for a single document."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if not doc.full_text:
+        raise HTTPException(status_code=400, detail="Document has no text to classify")
+
+    queue = jobs_router_mod._queue
+    store = jobs_router_mod._store
+    if queue is None or store is None:
+        raise HTTPException(status_code=503, detail="Job system not initialized")
+
+    job = store.create_job(JobType.CLASSIFY, {"document_id": doc_id})
+    await queue.put(job)
+    return {"job_id": job.id, "status": "queued"}
+
+
+@router.post("/documents/classify-batch")
+async def classify_batch(db: AsyncSession = Depends(get_db)) -> dict:
+    """Queue AI classification for all unclassified documents with text."""
+    queue = jobs_router_mod._queue
+    store = jobs_router_mod._store
+    if queue is None or store is None:
+        raise HTTPException(status_code=503, detail="Job system not initialized")
+
+    # Queue a single CLASSIFY job without document_id — the worker handles batch mode
+    job = store.create_job(JobType.CLASSIFY, {})
+    await queue.put(job)
+    return {"job_id": job.id, "status": "queued"}
+
+
+@router.post("/documents/{doc_id}/rescan")
+async def rescan_document(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Re-scan a single document (re-parse the file)."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    queue = jobs_router_mod._queue
+    store = jobs_router_mod._store
+    if queue is None or store is None:
+        raise HTTPException(status_code=503, detail="Job system not initialized")
+
+    doc.processing_status = "pending"
+    doc.full_text = None
+    doc.has_text = False
+    await db.commit()
+
+    job = store.create_job(
+        JobType.RESCAN,
+        {"document_id": doc_id, "file_path": doc.file_path, "file_type": doc.file_type},
+    )
+    await queue.put(job)
+    return {"job_id": job.id, "status": "queued"}
+
+
+@router.post("/documents/rescan-errors")
+async def rescan_all_errors(
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Re-scan all documents with error status."""
+    queue = jobs_router_mod._queue
+    store = jobs_router_mod._store
+    if queue is None or store is None:
+        raise HTTPException(status_code=503, detail="Job system not initialized")
+
+    result = await db.execute(
+        select(Document).where(Document.processing_status == "error")
+    )
+    docs = result.scalars().all()
+
+    for doc in docs:
+        doc.processing_status = "pending"
+        doc.full_text = None
+        doc.has_text = False
+    await db.commit()
+
+    queued = 0
+    for doc in docs:
+        job = store.create_job(
+            JobType.RESCAN,
+            {"document_id": doc.id, "file_path": doc.file_path, "file_type": doc.file_type},
+        )
+        await queue.put(job)
+        queued += 1
+
+    return {"queued": queued}
+
+
+@router.post("/documents/rescan-no-text")
+async def rescan_no_text(
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Re-queue RESCAN jobs for all done documents without extracted text."""
+    queue = jobs_router_mod._queue
+    store = jobs_router_mod._store
+    if queue is None or store is None:
+        raise HTTPException(status_code=503, detail="Job system not initialized")
+
+    result = await db.execute(
+        select(Document).where(
+            Document.processing_status == "done",
+            Document.has_text == False,
+        )
+    )
+    docs = result.scalars().all()
+
+    for doc in docs:
+        doc.processing_status = "pending"
+        doc.full_text = None
+    await db.commit()
+
+    queued = 0
+    for doc in docs:
+        job = store.create_job(
+            JobType.RESCAN,
+            {"document_id": doc.id, "file_path": doc.file_path, "file_type": doc.file_type},
+        )
+        await queue.put(job)
+        queued += 1
+
+    return {"queued": queued}
 
 
 @router.post("/documents/{doc_id}/favorite")
