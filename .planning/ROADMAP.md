@@ -25,9 +25,9 @@
 - [ ] Inkrementeller Crawl: nur neue/geänderte Dateien (SHA-256)
 - [ ] PDF-Extraktion via pymupdf4llm (Markdown-Output)
 - [ ] DOCX/PPTX-Extraktion
-- [ ] Per-Page OCR-Erkennung + Tesseract-Fallback
+- [x] Per-Page OCR-Erkennung + EasyOCR GPU-Fallback (Text-Qualitätsprüfung)
 - [ ] Corrupted/encrypted File Handling (Review-Queue)
-- [ ] Timeout-Protection (30s)
+- [x] Timeout-Protection (600s, konfigurierbar)
 - [ ] Thumbnail-Generierung (PDF Seite 1)
 - [ ] API-Endpoint: POST /api/crawl → startet Job
 - [ ] Dokumente in DB mit Volltext + Metadaten gespeichert
@@ -120,6 +120,30 @@
 
 ---
 
+## Phase 8: Search & Scan Improvements
+**Goal**: Echtzeit-Suche, Metadaten ohne AI, erweiterte Filter, Re-Scan fehlgeschlagener Dokumente.
+
+**Success Criteria**:
+- [x] Prefix-Matching: "Zahnr" findet "Zahnrad" während des Tippens
+- [x] Dateinamen-basierte Metadaten (Titel, Jahr, Typ) als Fallback ohne AI
+- [ ] Erweiterte Filter: Dateityp, Größe, Status, Upload-Datum
+- [x] Error-Dokumente können einzeln oder in Batch erneut gescannt werden
+- [ ] Facet-Zähler für neue Filtertypen
+
+**Plans**:
+- 08-01: Echtzeit-Suche mit Prefix-Matching
+- 08-02: Metadaten aus Dateinamen extrahieren (ohne AI)
+- 08-03: Erweiterte Filter in der Suchmaske
+- 08-04: Re-Scan fehlgeschlagener Dokumente
+- 08-05: Nachträglicher gezielter AI-Scan (einzeln + batch)
+
+**Waves**:
+- Wave 1: 08-01, 08-02 (unabhängig)
+- Wave 2: 08-03 (braucht Backend-Filter von 08-01)
+- Wave 3: 08-04, 08-05 (parallel, unabhängig voneinander)
+
+---
+
 ## Milestones
 
 | Milestone | Phases | Beschreibung |
@@ -127,3 +151,4 @@
 | **M1: Backend Core** | 1-3 | DB, Parsing, Workers — Dokumente können gecrawlt und gespeichert werden |
 | **M2: Intelligence** | 4-5 | AI-Klassifikation + Suche funktionieren end-to-end |
 | **M3: Ship v1** | 6-7 | Frontend komplett, polish, ready to use |
+| **M4: Improvements** | 8 | Suche, Filter, Metadaten, Re-Scan |

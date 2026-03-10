@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 7 (Tagging, Favorites & Polish) — COMPLETE
-- **Next Step**: Milestone M3 complete — v1 shipped!
-- **Milestone**: M3 COMPLETE (all 7 phases done)
+- **Phase**: 8 (Search & Scan Improvements) — IN PROGRESS
+- **Next Step**: Wave 2 (08-03: erweiterte Filter)
+- **Milestone**: M3 COMPLETE, M4 in progress
 
 ## Completed
 - [x] PROJECT.md created
@@ -41,9 +41,30 @@
   - Plan 03: JobProgress SSE, SavedSearches, SettingsPanel, ExportButton
   - Plan 04: Toolbar + final App.tsx integration
 
+## Phase 8 Progress
+- [x] 08-01: Echtzeit-Suche mit Prefix-Matching (already in FTS5 sanitizer)
+- [x] 08-02: Metadaten aus Dateinamen extrahieren (filename_extractor.py)
+- [ ] 08-03: Erweiterte Filter in der Suchmaske
+- [x] 08-04: Re-Scan fehlgeschlagener Dokumente (rescan-all-errors endpoint + Dashboard button)
+- [x] 08-05: Nachträglicher gezielter AI-Scan (classify batch + rescan-no-text endpoints)
+
+## Additional Improvements (outside Phase 8)
+- [x] EasyOCR GPU fallback mit Text-Qualitätserkennung (letter ratio ≥15%)
+- [x] Ollama /api/chat mit think:false für qwen3 Kompatibilität
+- [x] Konfigurierbares LLM-Modell (qwen3:4b default) und num_ctx (4096 default)
+- [x] PDF Parse-Timeout erhöht auf 600s (konfigurierbar via parse_timeout_seconds)
+- [x] page_count in Document-Modell und Detail-Ansicht
+- [x] Dashboard-Panel (StatsPanel) mit Statistiken und Batch-Aktionen
+- [x] Jobs-Panel als Toolbar-Dropdown mit SSE-Progress
+- [x] Redesign StatsPanel + JobProgress (Glassmorphism)
+- [x] ThemeToggle (Dark/Light)
+- [x] start.bat nutzt .venv für CUDA torch + easyocr
+
 ## Key Decisions
 - Stack: FastAPI + React + SQLite/FTS5 + Ollama/Qwen3
 - pymupdf4llm for PDF extraction (not raw PyMuPDF)
+- EasyOCR (de+en, GPU) als OCR-Fallback bei schlechter Textqualität
+- qwen3:4b als Standard-LLM (2.5GB, passt in 8GB VRAM)
 - nomic-embed-text-v1.5 for embeddings (not MiniLM)
 - shadcn/ui + TanStack Table for frontend
 - watchfiles for file monitoring (not watchdog)
@@ -60,9 +81,13 @@
 
 ## Pitfalls to Remember
 - WAL mode + timeout=30 on every connection
-- Per-page OCR detection before extraction
+- Per-page OCR detection: _text_quality() < 0.15 triggers OCR (not just text length)
+- pymupdf4llm can extract garbage text (◆◆◆) — always check quality before accepting
 - FTS5 query sanitization (hyphens!)
-- File operation timeouts (30s max)
+- PDF parse timeout: 600s default (konfigurierbar), nötig für OCR auf 200+ Seiten
+- qwen3 models need think:false and num_ctx limit (default 262k → huge KV cache on 8GB VRAM)
+- SQLAlchemy create_all() doesn't add columns to existing tables — use ALTER TABLE
 - Windows long paths (registry key)
-- Ollama structured output (JSON schema)
+- Ollama structured output (JSON schema with fallback to plain "json")
 - German text: NFC normalize + hyphen rejoining
+- start.bat must use .venv/Scripts/python (not uv run) for CUDA torch
