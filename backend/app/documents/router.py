@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.deps import get_db
 from app.documents.models import Document, Tag, DocumentTag, Favorite
 from app.jobs.models import JobType
-from app.jobs.router import _queue, _store
+from app.jobs import router as jobs_router_mod
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
@@ -32,10 +32,10 @@ async def crawl(request: CrawlRequest) -> dict:
     """Submit a crawl job (async). Use GET /api/jobs/{job_id} to check status."""
     if not Path(request.folder).is_dir():
         raise HTTPException(status_code=400, detail=f"Folder not found: {request.folder}")
-    if _store is None or _queue is None:
+    if jobs_router_mod._store is None or jobs_router_mod._queue is None:
         raise HTTPException(status_code=503, detail="Job system not initialized")
-    job = _store.create_job(JobType.CRAWL, {"folder": request.folder})
-    await _queue.put(job)
+    job = jobs_router_mod._store.create_job(JobType.CRAWL, {"folder": request.folder})
+    await jobs_router_mod._queue.put(job)
     return {"job_id": job.id, "status": job.status.value}
 
 
