@@ -12,7 +12,7 @@ from app.database import engine, Base
 from app.documents import models  # noqa: F401 — register models with Base
 from app.documents.router import router as documents_router
 from app.search.router import router as search_router
-from app.jobs.models import JobStore
+from app.jobs.models import JobStore, JobType
 from app.jobs.worker import worker_loop
 from app.jobs.watcher import watch_folders
 from app.jobs.router import router as jobs_router, init_job_globals
@@ -35,6 +35,13 @@ async def lifespan(app: FastAPI):
     # Start background tasks
     worker_task = asyncio.create_task(worker_loop(queue, store, settings))
     watcher_task = asyncio.create_task(watch_folders(settings.watch_folders, queue, store))
+
+    # Initial crawl: queue a crawl job for each watch folder on startup
+    for folder in settings.watch_folders:
+        if folder and Path(folder).is_dir():
+            job = store.create_job(JobType.CRAWL, {"folder": folder})
+            await queue.put(job)
+            logger.info("Queued initial crawl for: %s", folder)
 
     logger.info("LitVault started (worker + watcher active)")
     yield
