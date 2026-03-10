@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 8 (Search & Scan Improvements) — IN PROGRESS
-- **Next Step**: Wave 2 (08-03: erweiterte Filter)
-- **Milestone**: M3 COMPLETE, M4 in progress
+- **Phase**: 8 (Search & Scan Improvements) — COMPLETE
+- **Next Step**: All phases complete. Consider new features or refinements.
+- **Milestone**: M3 COMPLETE, M4 COMPLETE
 
 ## Completed
 - [x] PROJECT.md created
@@ -44,7 +44,7 @@
 ## Phase 8 Progress
 - [x] 08-01: Echtzeit-Suche mit Prefix-Matching (already in FTS5 sanitizer)
 - [x] 08-02: Metadaten aus Dateinamen extrahieren (filename_extractor.py)
-- [ ] 08-03: Erweiterte Filter in der Suchmaske
+- [x] 08-03: Erweiterte Filter in der Suchmaske (file_size, created_at filters + FilterSidebar Dateigröße section + FilterChips)
 - [x] 08-04: Re-Scan fehlgeschlagener Dokumente (rescan-all-errors endpoint + Dashboard button)
 - [x] 08-05: Nachträglicher gezielter AI-Scan (classify batch + rescan-no-text endpoints)
 

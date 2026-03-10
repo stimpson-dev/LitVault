@@ -41,6 +41,10 @@ async def search(
     author: str | None = None,
     file_type: str | None = None,
     processing_status: str | None = None,
+    file_size_min: int | None = None,
+    file_size_max: int | None = None,
+    created_after: str | None = None,
+    created_before: str | None = None,
     offset: int = 0,
     limit: int = 50,
     db: AsyncSession = Depends(get_db),
@@ -54,6 +58,10 @@ async def search(
         author=author,
         file_type=file_type,
         processing_status=processing_status,
+        file_size_min=file_size_min,
+        file_size_max=file_size_max,
+        created_after=created_after,
+        created_before=created_before,
     )
     service = SearchService(db)
     result = await service.search(q, filters, offset, limit)
@@ -76,6 +84,10 @@ async def export_search_csv(
     author: str | None = None,
     file_type: str | None = None,
     processing_status: str | None = None,
+    file_size_min: int | None = None,
+    file_size_max: int | None = None,
+    created_after: str | None = None,
+    created_before: str | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> StreamingResponse:
     filters = SearchFilters(
@@ -87,6 +99,10 @@ async def export_search_csv(
         author=author,
         file_type=file_type,
         processing_status=processing_status,
+        file_size_min=file_size_min,
+        file_size_max=file_size_max,
+        created_after=created_after,
+        created_before=created_before,
     )
     service = SearchService(db)
     result = await service.search(q, filters, offset=0, limit=1000)
@@ -126,6 +142,10 @@ async def search_facets(
     author: str | None = None,
     file_type: str | None = None,
     processing_status: str | None = None,
+    file_size_min: int | None = None,
+    file_size_max: int | None = None,
+    created_after: str | None = None,
+    created_before: str | None = None,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     filters = SearchFilters(
@@ -137,6 +157,10 @@ async def search_facets(
         author=author,
         file_type=file_type,
         processing_status=processing_status,
+        file_size_min=file_size_min,
+        file_size_max=file_size_max,
+        created_after=created_after,
+        created_before=created_before,
     )
     service = SearchService(db)
     facets = await service.get_facets(query=q, filters=filters)

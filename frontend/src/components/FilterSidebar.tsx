@@ -74,6 +74,15 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
     })
   }
 
+  function handleFileSizeClick(sizeMin: number | undefined, sizeMax: number | undefined) {
+    const isSelected = filters.file_size_min === sizeMin && filters.file_size_max === sizeMax
+    onFilterChange({
+      ...filters,
+      file_size_min: isSelected ? undefined : sizeMin,
+      file_size_max: isSelected ? undefined : sizeMax,
+    })
+  }
+
   return (
     <div className="flex flex-col text-sm text-zinc-400">
       {facets.categories.length > 0 && (
@@ -186,6 +195,35 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
           </ul>
         </div>
       )}
+
+      <div className="border-b border-zinc-800 p-4">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          Dateigröße
+        </h3>
+        <ul className="flex flex-col gap-0.5">
+          {[
+            { label: "< 1 MB", sizeMin: undefined, sizeMax: 1048576 },
+            { label: "1–10 MB", sizeMin: 1048576, sizeMax: 10485760 },
+            { label: "10–100 MB", sizeMin: 10485760, sizeMax: 104857600 },
+            { label: "> 100 MB", sizeMin: 104857600, sizeMax: undefined },
+          ].map(({ label, sizeMin, sizeMax }) => {
+            const isSelected = filters.file_size_min === sizeMin && filters.file_size_max === sizeMax
+            return (
+              <li key={label}>
+                <button
+                  type="button"
+                  onClick={() => handleFileSizeClick(sizeMin, sizeMax)}
+                  className={`flex w-full cursor-pointer items-center justify-between rounded px-3 py-1.5 hover:bg-zinc-800 ${
+                    isSelected ? "bg-zinc-700 text-white" : ""
+                  }`}
+                >
+                  <span>{label}</span>
+                </button>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
 
       {facets.statuses.length > 0 && (
         <div className="p-4">

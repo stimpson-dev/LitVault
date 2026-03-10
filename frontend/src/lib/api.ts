@@ -18,6 +18,10 @@ export async function searchDocuments(
   if (filters.author) params.set('author', filters.author);
   if (filters.file_type) params.set('file_type', filters.file_type);
   if (filters.processing_status) params.set('processing_status', filters.processing_status);
+  if (filters.file_size_min) params.set('file_size_min', String(filters.file_size_min));
+  if (filters.file_size_max) params.set('file_size_max', String(filters.file_size_max));
+  if (filters.created_after) params.set('created_after', filters.created_after);
+  if (filters.created_before) params.set('created_before', filters.created_before);
   params.set('offset', String(offset));
   params.set('limit', String(limit));
 
@@ -36,6 +40,16 @@ export async function getFacets(filters: SearchFilters = {}): Promise<SearchFace
   const params = new URLSearchParams();
   if (filters.category) params.set('category', filters.category);
   if (filters.doc_type) params.set('doc_type', filters.doc_type);
+  if (filters.year_min) params.set('year_min', String(filters.year_min));
+  if (filters.year_max) params.set('year_max', String(filters.year_max));
+  if (filters.language) params.set('language', filters.language);
+  if (filters.author) params.set('author', filters.author);
+  if (filters.file_type) params.set('file_type', filters.file_type);
+  if (filters.processing_status) params.set('processing_status', filters.processing_status);
+  if (filters.file_size_min) params.set('file_size_min', String(filters.file_size_min));
+  if (filters.file_size_max) params.set('file_size_max', String(filters.file_size_max));
+  if (filters.created_after) params.set('created_after', filters.created_after);
+  if (filters.created_before) params.set('created_before', filters.created_before);
   const res = await fetch(`${BASE}/search/facets?${params}`);
   if (!res.ok) throw new Error(`Facets failed: ${res.status}`);
   return res.json() as Promise<SearchFacets>;
@@ -194,5 +208,9 @@ export function getExportUrl(query: string, filters: SearchFilters): string {
   if (filters.author) params.set('author', filters.author);
   if (filters.file_type) params.set('file_type', filters.file_type);
   if (filters.processing_status) params.set('processing_status', filters.processing_status);
+  if (filters.file_size_min) params.set('file_size_min', String(filters.file_size_min));
+  if (filters.file_size_max) params.set('file_size_max', String(filters.file_size_max));
+  if (filters.created_after) params.set('created_after', filters.created_after);
+  if (filters.created_before) params.set('created_before', filters.created_before);
   return `${BASE}/search/export?${params}`;
 }

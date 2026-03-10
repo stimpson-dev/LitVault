@@ -126,9 +126,9 @@
 **Success Criteria**:
 - [x] Prefix-Matching: "Zahnr" findet "Zahnrad" während des Tippens
 - [x] Dateinamen-basierte Metadaten (Titel, Jahr, Typ) als Fallback ohne AI
-- [ ] Erweiterte Filter: Dateityp, Größe, Status, Upload-Datum
+- [x] Erweiterte Filter: Dateityp, Größe, Status, Upload-Datum
 - [x] Error-Dokumente können einzeln oder in Batch erneut gescannt werden
-- [ ] Facet-Zähler für neue Filtertypen
+- [x] Facet-Zähler für neue Filtertypen
 
 **Plans**:
 - 08-01: Echtzeit-Suche mit Prefix-Matching

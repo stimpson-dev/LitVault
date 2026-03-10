@@ -30,6 +30,10 @@ export interface SearchFilters {
   author?: string;
   file_type?: string;
   processing_status?: string;
+  file_size_min?: number;
+  file_size_max?: number;
+  created_after?: string;
+  created_before?: string;
 }
 
 export interface FacetItem {

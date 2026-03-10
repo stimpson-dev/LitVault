@@ -20,6 +20,10 @@ class SearchFilters:
     has_text: bool | None = None
     file_type: str | None = None
     processing_status: str | None = None
+    file_size_min: int | None = None
+    file_size_max: int | None = None
+    created_after: str | None = None
+    created_before: str | None = None
 
 
 @dataclass
@@ -79,6 +83,22 @@ class SearchService:
         if filters.processing_status is not None:
             filter_clauses.append("AND d.processing_status = :processing_status")
             params["processing_status"] = filters.processing_status
+
+        if filters.file_size_min is not None:
+            filter_clauses.append("AND d.file_size >= :file_size_min")
+            params["file_size_min"] = filters.file_size_min
+
+        if filters.file_size_max is not None:
+            filter_clauses.append("AND d.file_size <= :file_size_max")
+            params["file_size_max"] = filters.file_size_max
+
+        if filters.created_after is not None:
+            filter_clauses.append("AND d.created_at >= :created_after")
+            params["created_after"] = filters.created_after
+
+        if filters.created_before is not None:
+            filter_clauses.append("AND d.created_at <= :created_before")
+            params["created_before"] = filters.created_before
 
         if filters.category is not None:
             filter_clauses.append(
@@ -194,6 +214,22 @@ class SearchService:
         if filters.processing_status is not None:
             filter_clauses.append("AND d.processing_status = :processing_status")
             params["processing_status"] = filters.processing_status
+
+        if filters.file_size_min is not None:
+            filter_clauses.append("AND d.file_size >= :file_size_min")
+            params["file_size_min"] = filters.file_size_min
+
+        if filters.file_size_max is not None:
+            filter_clauses.append("AND d.file_size <= :file_size_max")
+            params["file_size_max"] = filters.file_size_max
+
+        if filters.created_after is not None:
+            filter_clauses.append("AND d.created_at >= :created_after")
+            params["created_after"] = filters.created_after
+
+        if filters.created_before is not None:
+            filter_clauses.append("AND d.created_at <= :created_before")
+            params["created_before"] = filters.created_before
 
         if filters.category is not None:
             filter_clauses.append(
