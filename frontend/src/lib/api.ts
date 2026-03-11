@@ -6,7 +6,8 @@ export async function searchDocuments(
   query: string,
   filters: SearchFilters = {},
   offset = 0,
-  limit = 50,
+  limit = 25,
+  sort = 'date_desc',
 ): Promise<SearchResponse> {
   const params = new URLSearchParams();
   if (query) params.set('q', query);
@@ -24,6 +25,7 @@ export async function searchDocuments(
   if (filters.created_before) params.set('created_before', filters.created_before);
   params.set('offset', String(offset));
   params.set('limit', String(limit));
+  if (sort) params.set('sort', sort);
 
   const res = await fetch(`${BASE}/search?${params}`);
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);

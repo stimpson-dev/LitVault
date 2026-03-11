@@ -1,9 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSearch } from './hooks/useSearch';
+import { useSettings } from './hooks/useSettings';
 import { useTheme } from './hooks/useTheme';
 import { SearchBar } from './components/SearchBar';
 import { FilterSidebar } from './components/FilterSidebar';
 import { FilterChips } from './components/FilterChips';
+import { FavoritesSidebar } from './components/FavoritesSidebar';
 import { ResultsList } from './components/ResultsList';
 import { DocumentDetail } from './components/DocumentDetail';
 import { Toolbar } from './components/Toolbar';
@@ -16,11 +18,35 @@ import { StatsPanel } from './components/StatsPanel';
 type Panel = 'searches' | 'review' | 'stats' | 'jobs' | null;
 
 function App() {
-  const search = useSearch();
-  const { theme, toggle: toggleTheme } = useTheme();
+  const { settings, refresh: refreshSettings } = useSettings();
+  const search = useSearch({
+    resultsPerPage: settings.results_per_page,
+    defaultSort: settings.default_sort,
+  });
+  const { theme, setTheme, toggle: toggleTheme } = useTheme();
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [activePanel, setActivePanel] = useState<Panel>(null);
+
+  // Sync theme setting from backend to useTheme hook
+  useEffect(() => {
+    if (settings.theme !== theme) {
+      setTheme(settings.theme);
+    }
+  // Only react to settings.theme changes, not theme itself
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.theme]);
+
+  // Apply start_page on first load
+  useEffect(() => {
+    if (settings.start_page === 'dashboard') {
+      setActivePanel('stats');
+    } else if (settings.start_page === 'favorites') {
+      // select nothing — favorites sidebar is visible
+    }
+  // Only on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const togglePanel = (panel: Panel) =>
     setActivePanel((prev) => (prev === panel ? null : panel));
@@ -29,6 +55,11 @@ function App() {
     search.setQuery(query);
     search.setFilters(filters);
     setActivePanel(null);
+  };
+
+  const handleSettingsClose = () => {
+    setShowSettings(false);
+    refreshSettings();
   };
 
   return (
@@ -84,8 +115,11 @@ function App() {
 
       {/* Main content area */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left sidebar: filters */}
+        {/* Left sidebar: favorites + filters */}
         <aside className="w-72 border-r border-zinc-800 overflow-y-auto">
+          {settings.show_favorites_sidebar && (
+            <FavoritesSidebar onSelect={setSelectedDocId} />
+          )}
           <FilterSidebar
             facets={search.results?.facets}
             filters={search.filters}
@@ -116,6 +150,7 @@ function App() {
                 offset={search.offset}
                 onLoadMore={() => search.setOffset()}
                 onSelect={setSelectedDocId}
+                viewMode={settings.view_mode}
               />
             </>
           )}
@@ -134,7 +169,7 @@ function App() {
 
       {/* Settings modal */}
       {showSettings && (
-        <SettingsPanel onClose={() => setShowSettings(false)} />
+        <SettingsPanel onClose={handleSettingsClose} />
       )}
 
     </div>

@@ -37,12 +37,20 @@ class SearchService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
+    SORT_MAP = {
+        "date_desc": "d.created_at DESC",
+        "date_asc": "d.created_at ASC",
+        "name_asc": "COALESCE(d.title, d.file_path) ASC",
+        "name_desc": "COALESCE(d.title, d.file_path) DESC",
+    }
+
     async def search(
         self,
         query: str,
         filters: SearchFilters | None = None,
         offset: int = 0,
         limit: int = 50,
+        sort: str = "date_desc",
     ) -> SearchResult:
         if filters is None:
             filters = SearchFilters()
@@ -112,6 +120,12 @@ class SearchService:
 
         filter_sql = " ".join(filter_clauses)
 
+        # Determine ORDER BY clause
+        if sort == "relevance" and sanitized:
+            order_by = "rank"
+        else:
+            order_by = self.SORT_MAP.get(sort, "d.created_at DESC")
+
         if sanitized:
             params["query"] = sanitized
             select_sql = (
@@ -127,7 +141,7 @@ class SearchService:
                 " JOIN documents d ON d.id = documents_fts.rowid"
                 " WHERE documents_fts MATCH :query"
                 f" {filter_sql}"
-                " ORDER BY rank"
+                f" ORDER BY {order_by}"
             )
             count_sql = (
                 "SELECT COUNT(*)"
@@ -142,7 +156,7 @@ class SearchService:
                 " FROM documents d"
                 " WHERE 1=1"
                 f" {filter_sql}"
-                " ORDER BY d.created_at DESC"
+                f" ORDER BY {order_by}"
             )
             count_sql = (
                 "SELECT COUNT(*)"

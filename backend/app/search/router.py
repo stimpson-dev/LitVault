@@ -47,6 +47,7 @@ async def search(
     created_before: str | None = None,
     offset: int = 0,
     limit: int = 50,
+    sort: str = "date_desc",
     db: AsyncSession = Depends(get_db),
 ) -> dict:
     filters = SearchFilters(
@@ -64,7 +65,7 @@ async def search(
         created_before=created_before,
     )
     service = SearchService(db)
-    result = await service.search(q, filters, offset, limit)
+    result = await service.search(q, filters, offset, limit, sort=sort)
     return {
         "documents": result.documents,
         "total": result.total,
