@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, Pencil, FolderOpen } from 'lucide-react';
-import { getDocument, updateDocument, classifyDocument, rescanDocument } from '@/lib/api';
+import { X, Loader2, Pencil, FolderOpen, FileText } from 'lucide-react';
+import { getDocument, updateDocument, classifyDocument, rescanDocument, openDocument } from '@/lib/api';
 import type { DocumentDetail as DocumentDetailType } from '@/lib/types';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { TagEditor } from '@/components/TagEditor';
@@ -246,7 +246,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
                 {doc.file_size !== null ? formatFileSize(doc.file_size) : '—'}
               </span>
 
-              <span className="text-zinc-500">Confidence</span>
+              <span className="text-zinc-500">Konfidenz</span>
               <span className="flex items-center gap-1.5 text-zinc-200">
                 {doc.classification_confidence !== null ? (
                   <>
@@ -275,7 +275,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
           {/* Thumbnail Preview */}
           {(doc.file_type === 'pdf' || doc.file_type === '.pdf') && (
             <div className="p-4 border-b border-zinc-800">
-              <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
                 Vorschau
               </h3>
               <img
@@ -289,7 +289,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
 
           {/* Tags */}
           <div className="p-4 border-b border-zinc-800">
-            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+            <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
               Tags
             </h3>
             <TagEditor docId={docId} />
@@ -298,7 +298,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
           {/* Summary */}
           <div className="p-4 border-b border-zinc-800">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+              <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
                 Zusammenfassung
               </h3>
               {editingField !== 'summary' && (
@@ -379,12 +379,23 @@ export function DocumentDetail({ docId, onClose }: Props) {
 
           {/* File path */}
           <div className="p-4">
-            <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+            <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
               Dateipfad
             </h3>
             <p className="text-xs font-mono bg-zinc-800 p-2 rounded break-all text-zinc-300">
               {doc.file_path}
             </p>
+            <button
+              onClick={async () => {
+                try {
+                  await openDocument(doc.id);
+                } catch { /* ignore */ }
+              }}
+              className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+            >
+              <FileText size={13} />
+              Dokument öffnen
+            </button>
             <button
               onClick={async () => {
                 try {

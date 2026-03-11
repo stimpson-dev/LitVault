@@ -10,9 +10,18 @@ const DOC_TYPE_LABELS: Record<string, string> = {
   paper: "Paper",
   dissertation: "Dissertation",
   book: "Buch",
+  buch: "Buch",
   report: "Bericht",
+  bericht: "Bericht",
   thesis: "Thesis",
   article: "Artikel",
+  artikel: "Artikel",
+  norm: "Norm",
+  presentation: "Präsentation",
+  praesentation: "Präsentation",
+  manual: "Handbuch",
+  internal: "Intern",
+  intern: "Intern",
 }
 
 const FILE_TYPE_LABELS: Record<string, string> = {

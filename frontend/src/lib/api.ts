@@ -178,6 +178,12 @@ export async function rescanDocument(docId: number): Promise<{ job_id: string }>
   return res.json() as Promise<{ job_id: string }>;
 }
 
+export async function openDocument(docId: number): Promise<{ opened: boolean }> {
+  const res = await fetch(`${BASE}/documents/${docId}/open`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Open failed: ${res.status}`);
+  return res.json();
+}
+
 export async function rescanAllErrors(): Promise<{ queued: number }> {
   const res = await fetch(`${BASE}/documents/rescan-errors`, { method: 'POST' });
   if (!res.ok) throw new Error('Batch rescan failed');

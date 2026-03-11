@@ -41,19 +41,19 @@
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
+    --background: oklch(0.12 0.04 255);
     --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
+    --card: oklch(0.16 0.035 253);
     --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
+    --popover: oklch(0.16 0.035 253);
     --popover-foreground: oklch(0.985 0 0);
     --primary: oklch(0.87 0.00 0);
     --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
+    --secondary: oklch(0.21 0.03 251);
     --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
+    --muted: oklch(0.21 0.03 251);
     --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.371 0 0);
+    --accent: oklch(0.28 0.025 249);
     --accent-foreground: oklch(0.985 0 0);
     --destructive: oklch(0.704 0.191 22.216);
     --border: oklch(1 0 0 / 10%);
@@ -64,11 +64,11 @@
     --chart-3: oklch(0.546 0.245 262.881);
     --chart-4: oklch(0.488 0.243 264.376);
     --chart-5: oklch(0.424 0.199 265.638);
-    --sidebar: oklch(0.205 0 0);
+    --sidebar: oklch(0.14 0.038 255);
     --sidebar-foreground: oklch(0.985 0 0);
     --sidebar-primary: oklch(0.488 0.243 264.376);
     --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent: oklch(0.21 0.03 251);
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(1 0 0 / 10%);
     --sidebar-ring: oklch(0.556 0 0);
@@ -126,6 +126,19 @@
   html {
     @apply font-sans;
     }
+}
+
+:root.dark {
+  --color-zinc-950: oklch(0.12 0.04 255);
+  --color-zinc-900: oklch(0.16 0.035 253);
+  --color-zinc-800: oklch(0.21 0.03 251);
+  --color-zinc-700: oklch(0.28 0.025 249);
+  --color-zinc-600: oklch(0.38 0.02 247);
+  --color-zinc-500: oklch(0.52 0.015 245);
+  --color-zinc-400: oklch(0.68 0.012 243);
+  --color-zinc-300: oklch(0.78 0.009 241);
+  --color-zinc-200: oklch(0.88 0.007 240);
+  --color-zinc-100: oklch(0.95 0.005 238);
 }
 
 /* Light mode: remap zinc palette so dark components become light without changing class names */

@@ -13,20 +13,22 @@ import { SavedSearches } from './components/SavedSearches';
 import { ReviewQueue } from './components/ReviewQueue';
 import { StatsPanel } from './components/StatsPanel';
 
+type Panel = 'searches' | 'review' | 'stats' | 'jobs' | null;
+
 function App() {
   const search = useSearch();
   const { theme, toggle: toggleTheme } = useTheme();
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [showReviewQueue, setShowReviewQueue] = useState(false);
-  const [showSavedSearches, setShowSavedSearches] = useState(false);
-  const [showStats, setShowStats] = useState(false);
-  const [showJobs, setShowJobs] = useState(false);
+  const [activePanel, setActivePanel] = useState<Panel>(null);
+
+  const togglePanel = (panel: Panel) =>
+    setActivePanel((prev) => (prev === panel ? null : panel));
 
   const handleLoadSearch = (query: string, filters: typeof search.filters) => {
     search.setQuery(query);
     search.setFilters(filters);
-    setShowSavedSearches(false);
+    setActivePanel(null);
   };
 
   return (
@@ -44,10 +46,10 @@ function App() {
       <div className="relative">
         <Toolbar
           onOpenSettings={() => setShowSettings(true)}
-          onOpenReviewQueue={() => setShowReviewQueue(!showReviewQueue)}
-          onOpenSavedSearches={() => setShowSavedSearches(!showSavedSearches)}
-          onOpenStats={() => setShowStats(!showStats)}
-          onOpenJobs={() => setShowJobs(!showJobs)}
+          onOpenReviewQueue={() => togglePanel('review')}
+          onOpenSavedSearches={() => togglePanel('searches')}
+          onOpenStats={() => togglePanel('stats')}
+          onOpenJobs={() => togglePanel('jobs')}
           query={search.query}
           filters={search.filters}
           resultCount={search.results?.total}
@@ -55,29 +57,27 @@ function App() {
           onToggleTheme={toggleTheme}
         />
 
-        {/* Saved searches dropdown */}
-        {showSavedSearches && (
+        {/* Dropdown panels — only one active at a time */}
+        {activePanel === 'searches' && (
           <div className="absolute top-full left-0 z-40 mt-1 ml-4">
             <SavedSearches
               currentQuery={search.query}
               currentFilters={search.filters}
               onLoadSearch={handleLoadSearch}
-              onClose={() => setShowSavedSearches(false)}
+              onClose={() => setActivePanel(null)}
             />
           </div>
         )}
 
-        {/* Stats panel dropdown */}
-        {showStats && (
+        {activePanel === 'stats' && (
           <div className="absolute top-full left-0 z-40 mt-1 ml-4">
-            <StatsPanel onClose={() => setShowStats(false)} />
+            <StatsPanel onClose={() => setActivePanel(null)} />
           </div>
         )}
 
-        {/* Jobs panel dropdown */}
-        {showJobs && (
+        {activePanel === 'jobs' && (
           <div className="absolute top-full left-0 z-40 mt-1 ml-4">
-            <JobProgress onClose={() => setShowJobs(false)} />
+            <JobProgress onClose={() => setActivePanel(null)} />
           </div>
         )}
       </div>
@@ -95,13 +95,13 @@ function App() {
 
         {/* Center: results or review queue */}
         <main className="flex-1 overflow-y-auto">
-          {showReviewQueue ? (
+          {activePanel === 'review' ? (
             <ReviewQueue
               onSelectDoc={(id) => {
                 setSelectedDocId(id);
-                setShowReviewQueue(false);
+                setActivePanel(null);
               }}
-              onClose={() => setShowReviewQueue(false)}
+              onClose={() => setActivePanel(null)}
             />
           ) : (
             <>

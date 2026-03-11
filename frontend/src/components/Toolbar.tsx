@@ -47,7 +47,7 @@ export function Toolbar({
         title="Überprüfung"
       >
         <ClipboardCheck size={14} />
-        <span>Review</span>
+        <span>Prüfung</span>
       </button>
 
       <button

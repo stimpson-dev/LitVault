@@ -247,6 +247,25 @@ async def open_document_folder(
     return {"opened": True}
 
 
+@router.post("/documents/{doc_id}/open")
+async def open_document_file(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Open the file with the system default application."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    file_path = Path(doc.file_path)
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found on disk")
+    if sys.platform == "win32":
+        import os
+        os.startfile(str(file_path))
+    return {"opened": True}
+
+
 @router.post("/documents/{doc_id}/classify")
 async def classify_document(doc_id: int, db: AsyncSession = Depends(get_db)) -> dict:
     """Queue AI classification for a single document."""

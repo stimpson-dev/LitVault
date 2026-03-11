@@ -94,7 +94,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-sm text-zinc-400">Watch Folders</label>
+                <label className="text-sm text-zinc-400">Überwachte Ordner</label>
                 <button
                   type="button"
                   onClick={addFolder}
@@ -150,7 +150,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             </div>
 
             <div>
-              <label className="block text-sm text-zinc-400 mb-1">Poll-Intervall (Sekunden)</label>
+              <label className="block text-sm text-zinc-400 mb-1">Abfrageintervall (Sekunden)</label>
               <input
                 type="number"
                 value={draft.poll_interval_seconds}
