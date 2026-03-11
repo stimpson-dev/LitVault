@@ -1,9 +1,49 @@
+import { useState } from "react"
+import { ChevronDown } from "lucide-react"
 import type { SearchFacets, SearchFilters } from "@/lib/types"
 
 interface FilterSidebarProps {
   facets?: SearchFacets
   filters: SearchFilters
   onFilterChange: (filters: SearchFilters) => void
+}
+
+function CollapsibleSection({
+  title,
+  count,
+  children,
+  defaultOpen = true,
+  borderBottom = true,
+}: {
+  title: string
+  count?: number
+  children: React.ReactNode
+  defaultOpen?: boolean
+  borderBottom?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+  return (
+    <div className={`p-4${borderBottom ? " border-b border-zinc-800" : ""}`}>
+      <button
+        type="button"
+        onClick={() => setOpen(!open)}
+        className="mb-2 flex w-full cursor-pointer items-center justify-between"
+      >
+        <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+          {title}
+          {!open && count !== undefined && (
+            <span className="ml-2 text-zinc-600">{count}</span>
+          )}
+        </h3>
+        <ChevronDown
+          className={`h-3.5 w-3.5 text-zinc-500 transition-transform duration-200 ${
+            open ? "" : "-rotate-90"
+          }`}
+        />
+      </button>
+      {open && children}
+    </div>
+  )
 }
 
 const DOC_TYPE_LABELS: Record<string, string> = {
@@ -95,10 +135,7 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
   return (
     <div className="flex flex-col text-sm text-zinc-400">
       {facets.categories.length > 0 && (
-        <div className="border-b border-zinc-800 p-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            Kategorien
-          </h3>
+        <CollapsibleSection title="Kategorien" count={facets.categories.length}>
           <ul className="flex flex-col gap-0.5">
             {facets.categories.map((item) => {
               const isSelected = filters.category === item.name
@@ -118,14 +155,11 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
               )
             })}
           </ul>
-        </div>
+        </CollapsibleSection>
       )}
 
       {facets.doc_types.length > 0 && (
-        <div className="border-b border-zinc-800 p-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            Dokumenttyp
-          </h3>
+        <CollapsibleSection title="Dokumenttyp" count={facets.doc_types.length}>
           <ul className="flex flex-col gap-0.5">
             {facets.doc_types.map((item) => {
               const isSelected = filters.doc_type === item.name
@@ -146,14 +180,11 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
               )
             })}
           </ul>
-        </div>
+        </CollapsibleSection>
       )}
 
       {facets.years.length > 0 && (
-        <div className="border-b border-zinc-800 p-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            Jahr
-          </h3>
+        <CollapsibleSection title="Jahr" count={facets.years.length}>
           <ul className="flex max-h-60 flex-col gap-0.5 overflow-y-auto">
             {facets.years.map((item) => {
               const yearNum = parseInt(item.name, 10)
@@ -174,14 +205,11 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
               )
             })}
           </ul>
-        </div>
+        </CollapsibleSection>
       )}
 
       {facets.file_types.length > 0 && (
-        <div className="border-b border-zinc-800 p-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            Dateityp
-          </h3>
+        <CollapsibleSection title="Dateityp" count={facets.file_types.length}>
           <ul className="flex flex-col gap-0.5">
             {facets.file_types.map((item) => {
               const isSelected = filters.file_type === item.name
@@ -202,13 +230,10 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
               )
             })}
           </ul>
-        </div>
+        </CollapsibleSection>
       )}
 
-      <div className="border-b border-zinc-800 p-4">
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-          Dateigröße
-        </h3>
+      <CollapsibleSection title="Dateigröße" count={4}>
         <ul className="flex flex-col gap-0.5">
           {[
             { label: "< 1 MB", sizeMin: undefined, sizeMax: 1048576 },
@@ -232,13 +257,10 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
             )
           })}
         </ul>
-      </div>
+      </CollapsibleSection>
 
       {facets.statuses.length > 0 && (
-        <div className="p-4">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-zinc-500">
-            Status
-          </h3>
+        <CollapsibleSection title="Status" count={facets.statuses.length} borderBottom={false}>
           <ul className="flex flex-col gap-0.5">
             {facets.statuses.map((item) => {
               const isSelected = filters.processing_status === item.name
@@ -259,7 +281,7 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
               )
             })}
           </ul>
-        </div>
+        </CollapsibleSection>
       )}
     </div>
   )

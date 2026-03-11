@@ -72,13 +72,22 @@ export interface TagItem {
 }
 
 export interface AppSettings {
+  // Allgemein
+  language: "de" | "en";
+  theme: "dark" | "light";
+  start_page: "search" | "dashboard" | "favorites";
+  // Darstellung
+  results_per_page: number;
+  default_sort: "date_desc" | "date_asc" | "name_asc" | "name_desc" | "relevance";
+  view_mode: "list" | "grid";
+  show_favorites_sidebar: boolean;
+  // Ordner & Synchronisation
   watch_folders: string[];
-  ollama_url: string;
-  ollama_model: string;
+  poll_interval_seconds: number;
+  // Read-only
   db_path: string;
   thumbnails_dir: string;
   log_level: string;
-  poll_interval_seconds: number;
 }
 
 export interface JobProgress {

@@ -8,24 +8,37 @@ router = APIRouter(prefix="/api/settings", tags=["settings"])
 
 
 class SettingsUpdate(BaseModel):
+    language: str | None = None
+    theme: str | None = None
+    start_page: str | None = None
+    results_per_page: int | None = None
+    default_sort: str | None = None
+    view_mode: str | None = None
+    show_favorites_sidebar: bool | None = None
     watch_folders: list[str] | None = None
-    ollama_url: str | None = None
-    ollama_model: str | None = None
     poll_interval_seconds: int | None = None
+
+
+def _settings_response(s) -> dict:
+    return {
+        "language": s.language,
+        "theme": s.theme,
+        "start_page": s.start_page,
+        "results_per_page": s.results_per_page,
+        "default_sort": s.default_sort,
+        "view_mode": s.view_mode,
+        "show_favorites_sidebar": s.show_favorites_sidebar,
+        "watch_folders": s.watch_folders,
+        "poll_interval_seconds": s.poll_interval_seconds,
+        "db_path": s.db_path,
+        "thumbnails_dir": s.thumbnails_dir,
+        "log_level": s.log_level,
+    }
 
 
 @router.get("")
 async def get_current_settings() -> dict:
-    s = get_settings()
-    return {
-        "watch_folders": s.watch_folders,
-        "ollama_url": s.ollama_url,
-        "ollama_model": s.ollama_model,
-        "db_path": s.db_path,
-        "thumbnails_dir": s.thumbnails_dir,
-        "log_level": s.log_level,
-        "poll_interval_seconds": s.poll_interval_seconds,
-    }
+    return _settings_response(get_settings())
 
 
 @router.put("")
@@ -45,14 +58,4 @@ async def update_settings(body: SettingsUpdate) -> dict:
     # Clear settings cache
     get_settings.cache_clear()
 
-    # Return fresh settings
-    s = get_settings()
-    return {
-        "watch_folders": s.watch_folders,
-        "ollama_url": s.ollama_url,
-        "ollama_model": s.ollama_model,
-        "db_path": s.db_path,
-        "thumbnails_dir": s.thumbnails_dir,
-        "log_level": s.log_level,
-        "poll_interval_seconds": s.poll_interval_seconds,
-    }
+    return _settings_response(get_settings())

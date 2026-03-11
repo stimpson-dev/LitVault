@@ -9,7 +9,19 @@ CONFIG_PATH = Path(__file__).parent.parent.parent / "config.json"
 
 
 class Settings(BaseSettings):
+    # Allgemein
+    language: str = "de"
+    theme: str = "dark"
+    start_page: str = "search"
+    # Darstellung
+    results_per_page: int = 25
+    default_sort: str = "date_desc"
+    view_mode: str = "list"
+    show_favorites_sidebar: bool = True
+    # Ordner & Synchronisation
     watch_folders: list[str] = []
+    poll_interval_seconds: int = 10
+    # Backend-only (not exposed in UI)
     ollama_url: str = "http://localhost:11434"
     ollama_model: str = "qwen3:4b"
     ollama_num_ctx: int = 4096
@@ -17,7 +29,6 @@ class Settings(BaseSettings):
     db_path: str = "litvault.db"
     thumbnails_dir: str = "thumbnails"
     log_level: str = "INFO"
-    poll_interval_seconds: int = 10
     parse_timeout_seconds: int = 600
 
     model_config = SettingsConfigDict(

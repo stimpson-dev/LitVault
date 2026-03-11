@@ -56,6 +56,8 @@ async def scan_folder(folder: str | Path) -> AsyncGenerator[dict, None]:
                 continue
             if path.name.startswith("~$"):
                 continue  # Skip Office lock files
+            if path.name.startswith("._"):
+                continue  # Skip macOS resource fork files
             try:
                 meta = await collect_file_meta(path)
                 yield meta
