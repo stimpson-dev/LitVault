@@ -1,6 +1,8 @@
 import { useState } from "react"
 import { ChevronDown } from "lucide-react"
 import type { SearchFacets, SearchFilters } from "@/lib/types"
+import { useTranslation } from "@/i18n"
+import type { TranslationKey } from "@/i18n"
 
 interface FilterSidebarProps {
   facets?: SearchFacets
@@ -46,44 +48,55 @@ function CollapsibleSection({
   )
 }
 
-const DOC_TYPE_LABELS: Record<string, string> = {
-  paper: "Paper",
-  dissertation: "Dissertation",
-  book: "Buch",
-  buch: "Buch",
-  report: "Bericht",
-  bericht: "Bericht",
-  thesis: "Thesis",
-  article: "Artikel",
-  artikel: "Artikel",
-  norm: "Norm",
-  presentation: "Präsentation",
-  praesentation: "Präsentation",
-  manual: "Handbuch",
-  internal: "Intern",
-  intern: "Intern",
-}
-
-const FILE_TYPE_LABELS: Record<string, string> = {
-  ".pdf": "PDF",
-  ".docx": "Word (DOCX)",
-  ".pptx": "PowerPoint (PPTX)",
-  ".txt": "Text",
-  ".doc": "Word (DOC)",
-  ".ppt": "PowerPoint (PPT)",
-  ".xlsx": "Excel (XLSX)",
-  ".xls": "Excel (XLS)",
-}
-
-const STATUS_LABELS: Record<string, string> = {
-  done: "Fertig",
-  error: "Fehler",
-  processing: "Verarbeitung",
-  pending: "Wartend",
-}
-
 export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebarProps) {
+  const { t } = useTranslation()
+
   if (!facets) return null
+
+  function getDocTypeLabel(name: string): string {
+    const map: Record<string, TranslationKey> = {
+      paper: "docType.paper",
+      dissertation: "docType.dissertation",
+      book: "docType.book",
+      buch: "docType.book",
+      report: "docType.report",
+      bericht: "docType.report",
+      thesis: "docType.thesis",
+      article: "docType.article",
+      artikel: "docType.article",
+      norm: "docType.norm",
+      presentation: "docType.presentation",
+      praesentation: "docType.presentation",
+      manual: "docType.manual",
+      internal: "docType.internal",
+      intern: "docType.internal",
+    }
+    return map[name] ? t(map[name]) : name
+  }
+
+  function getFileTypeLabel(name: string): string {
+    const map: Record<string, TranslationKey> = {
+      ".pdf": "fileType.pdf",
+      ".docx": "fileType.docx",
+      ".pptx": "fileType.pptx",
+      ".txt": "fileType.txt",
+      ".doc": "fileType.doc",
+      ".ppt": "fileType.ppt",
+      ".xlsx": "fileType.xlsx",
+      ".xls": "fileType.xls",
+    }
+    return map[name] ? t(map[name]) : name
+  }
+
+  function getStatusLabel(name: string): string {
+    const map: Record<string, TranslationKey> = {
+      done: "status.done",
+      error: "status.error",
+      processing: "status.processing",
+      pending: "status.pending",
+    }
+    return map[name] ? t(map[name]) : name
+  }
 
   function handleCategoryClick(name: string) {
     onFilterChange({
@@ -135,7 +148,7 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
   return (
     <div className="flex flex-col text-sm text-zinc-400">
       {facets.categories.length > 0 && (
-        <CollapsibleSection title="Kategorien" count={facets.categories.length}>
+        <CollapsibleSection title={t("filter.categories")} count={facets.categories.length}>
           <ul className="flex flex-col gap-0.5">
             {facets.categories.map((item) => {
               const isSelected = filters.category === item.name
@@ -159,11 +172,11 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
       )}
 
       {facets.doc_types.length > 0 && (
-        <CollapsibleSection title="Dokumenttyp" count={facets.doc_types.length}>
+        <CollapsibleSection title={t("filter.docType")} count={facets.doc_types.length}>
           <ul className="flex flex-col gap-0.5">
             {facets.doc_types.map((item) => {
               const isSelected = filters.doc_type === item.name
-              const label = DOC_TYPE_LABELS[item.name] ?? item.name
+              const label = getDocTypeLabel(item.name)
               return (
                 <li key={item.name}>
                   <button
@@ -184,7 +197,7 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
       )}
 
       {facets.years.length > 0 && (
-        <CollapsibleSection title="Jahr" count={facets.years.length}>
+        <CollapsibleSection title={t("filter.year")} count={facets.years.length}>
           <ul className="flex max-h-60 flex-col gap-0.5 overflow-y-auto">
             {facets.years.map((item) => {
               const yearNum = parseInt(item.name, 10)
@@ -209,11 +222,11 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
       )}
 
       {facets.file_types.length > 0 && (
-        <CollapsibleSection title="Dateityp" count={facets.file_types.length}>
+        <CollapsibleSection title={t("filter.fileType")} count={facets.file_types.length}>
           <ul className="flex flex-col gap-0.5">
             {facets.file_types.map((item) => {
               const isSelected = filters.file_type === item.name
-              const label = FILE_TYPE_LABELS[item.name] ?? item.name
+              const label = getFileTypeLabel(item.name)
               return (
                 <li key={item.name}>
                   <button
@@ -233,7 +246,7 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
         </CollapsibleSection>
       )}
 
-      <CollapsibleSection title="Dateigröße" count={4}>
+      <CollapsibleSection title={t("filter.fileSize")} count={4}>
         <ul className="flex flex-col gap-0.5">
           {[
             { label: "< 1 MB", sizeMin: undefined, sizeMax: 1048576 },
@@ -260,11 +273,11 @@ export function FilterSidebar({ facets, filters, onFilterChange }: FilterSidebar
       </CollapsibleSection>
 
       {facets.statuses.length > 0 && (
-        <CollapsibleSection title="Status" count={facets.statuses.length} borderBottom={false}>
+        <CollapsibleSection title={t("filter.status")} count={facets.statuses.length} borderBottom={false}>
           <ul className="flex flex-col gap-0.5">
             {facets.statuses.map((item) => {
               const isSelected = filters.processing_status === item.name
-              const label = STATUS_LABELS[item.name] ?? item.name
+              const label = getStatusLabel(item.name)
               return (
                 <li key={item.name}>
                   <button

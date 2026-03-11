@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getAppSettings, updateAppSettings } from '@/lib/api';
 import type { AppSettings } from '@/lib/types';
 import { X, Plus, Minus } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
 interface SettingsPanelProps {
   onClose: () => void;
@@ -26,6 +27,7 @@ const sectionTitle =
   'text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-3';
 
 export function SettingsPanel({ onClose }: SettingsPanelProps) {
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<AppSettings | null>(null);
   const [draft, setDraft] = useState<DraftSettings>({
     language: 'de',
@@ -97,7 +99,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
       <div className="bg-zinc-900 rounded-lg p-6 w-full max-w-lg max-h-[85vh] border border-zinc-800 shadow-2xl flex flex-col">
         <div className="flex items-center justify-between mb-5">
-          <h2 className="text-xl font-bold text-zinc-100">Einstellungen</h2>
+          <h2 className="text-xl font-bold text-zinc-100">{t('settings.title')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -108,15 +110,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         </div>
 
         {!settings ? (
-          <p className="text-sm text-zinc-500">Laden...</p>
+          <p className="text-sm text-zinc-500">{t('settings.loading')}</p>
         ) : (
           <div className="overflow-y-auto space-y-6 pr-1">
             {/* --- Allgemein --- */}
             <section>
-              <h3 className={sectionTitle}>Allgemein</h3>
+              <h3 className={sectionTitle}>{t('settings.general')}</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Sprache</label>
+                  <label className="block text-sm text-zinc-400 mb-1">{t('settings.language')}</label>
                   <select
                     value={draft.language}
                     onChange={(e) =>
@@ -124,12 +126,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     }
                     className={selectClass}
                   >
-                    <option value="de">Deutsch</option>
-                    <option value="en">English</option>
+                    <option value="de">{t('settings.langDe')}</option>
+                    <option value="en">{t('settings.langEn')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Theme</label>
+                  <label className="block text-sm text-zinc-400 mb-1">{t('settings.theme')}</label>
                   <select
                     value={draft.theme}
                     onChange={(e) =>
@@ -137,12 +139,12 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     }
                     className={selectClass}
                   >
-                    <option value="dark">Dunkel</option>
-                    <option value="light">Hell</option>
+                    <option value="dark">{t('settings.themeDark')}</option>
+                    <option value="light">{t('settings.themeLight')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Startseite</label>
+                  <label className="block text-sm text-zinc-400 mb-1">{t('settings.startPage')}</label>
                   <select
                     value={draft.start_page}
                     onChange={(e) =>
@@ -150,9 +152,9 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     }
                     className={selectClass}
                   >
-                    <option value="search">Suche</option>
-                    <option value="dashboard">Dashboard</option>
-                    <option value="favorites">Favoriten</option>
+                    <option value="search">{t('settings.startSearch')}</option>
+                    <option value="dashboard">{t('settings.startDashboard')}</option>
+                    <option value="favorites">{t('settings.startFavorites')}</option>
                   </select>
                 </div>
               </div>
@@ -160,10 +162,10 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
             {/* --- Darstellung --- */}
             <section>
-              <h3 className={sectionTitle}>Darstellung</h3>
+              <h3 className={sectionTitle}>{t('settings.display')}</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Ergebnisse pro Seite</label>
+                  <label className="block text-sm text-zinc-400 mb-1">{t('settings.resultsPerPage')}</label>
                   <select
                     value={draft.results_per_page}
                     onChange={(e) =>
@@ -178,7 +180,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Standard-Sortierung</label>
+                  <label className="block text-sm text-zinc-400 mb-1">{t('settings.defaultSort')}</label>
                   <select
                     value={draft.default_sort}
                     onChange={(e) =>
@@ -186,15 +188,15 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     }
                     className={selectClass}
                   >
-                    <option value="date_desc">Datum (neueste)</option>
-                    <option value="date_asc">Datum (älteste)</option>
-                    <option value="name_asc">Name (A-Z)</option>
-                    <option value="name_desc">Name (Z-A)</option>
-                    <option value="relevance">Relevanz</option>
+                    <option value="date_desc">{t('settings.sortDateDesc')}</option>
+                    <option value="date_asc">{t('settings.sortDateAsc')}</option>
+                    <option value="name_asc">{t('settings.sortNameAsc')}</option>
+                    <option value="name_desc">{t('settings.sortNameDesc')}</option>
+                    <option value="relevance">{t('settings.sortRelevance')}</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-zinc-400 mb-1">Ansicht</label>
+                  <label className="block text-sm text-zinc-400 mb-1">{t('settings.viewMode')}</label>
                   <div className="flex gap-2">
                     {(['list', 'grid'] as const).map((mode) => (
                       <button
@@ -207,13 +209,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                             : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                         }`}
                       >
-                        {mode === 'list' ? 'Liste' : 'Kacheln'}
+                        {mode === 'list' ? t('settings.viewList') : t('settings.viewGrid')}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
-                  <label className="text-sm text-zinc-400">Favoriten in Sidebar</label>
+                  <label className="text-sm text-zinc-400">{t('settings.favoritesSidebar')}</label>
                   <button
                     type="button"
                     onClick={() =>
@@ -235,16 +237,16 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
             {/* --- Ordner & Synchronisation --- */}
             <section>
-              <h3 className={sectionTitle}>Ordner & Synchronisation</h3>
+              <h3 className={sectionTitle}>{t('settings.foldersSync')}</h3>
               <div className="space-y-3">
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="text-sm text-zinc-400">Überwachte Ordner</label>
+                    <label className="text-sm text-zinc-400">{t('settings.watchFolders')}</label>
                     <button
                       type="button"
                       onClick={addFolder}
                       className="p-1 rounded hover:bg-zinc-800 text-zinc-500 hover:text-zinc-300 transition-colors"
-                      title="Ordner hinzufügen"
+                      title={t('settings.addFolder')}
                     >
                       <Plus size={14} />
                     </button>
@@ -257,7 +259,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                           value={folder}
                           onChange={(e) => updateFolder(i, e.target.value)}
                           className={`flex-1 ${inputClass}`}
-                          placeholder="C:\Pfad\zum\Ordner"
+                          placeholder={t('settings.folderPlaceholder')}
                         />
                         <button
                           type="button"
@@ -269,13 +271,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                       </div>
                     ))}
                     {draft.watch_folders.length === 0 && (
-                      <p className="text-xs text-zinc-600">Keine Ordner konfiguriert</p>
+                      <p className="text-xs text-zinc-600">{t('settings.noFolders')}</p>
                     )}
                   </div>
                 </div>
                 <div>
                   <label className="block text-sm text-zinc-400 mb-1">
-                    Abfrageintervall (Sekunden)
+                    {t('settings.pollInterval')}
                   </label>
                   <input
                     type="number"
@@ -296,13 +298,13 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
         )}
 
         <div className="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-zinc-800">
-          {saved && <span className="text-green-400 text-sm mr-2">Gespeichert!</span>}
+          {saved && <span className="text-green-400 text-sm mr-2">{t('settings.saved')}</span>}
           <button
             type="button"
             onClick={onClose}
             className="bg-zinc-800 hover:bg-zinc-700 text-zinc-300 px-4 py-2 rounded text-sm transition-colors"
           >
-            Abbrechen
+            {t('settings.cancel')}
           </button>
           <button
             type="button"
@@ -310,7 +312,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
             disabled={saving || !settings}
             className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? 'Speichern...' : 'Speichern'}
+            {saving ? t('settings.saving') : t('settings.save')}
           </button>
         </div>
       </div>

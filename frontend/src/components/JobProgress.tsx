@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from 'react';
 import { listJobs, cancelJob } from '@/lib/api';
 import type { Job } from '@/lib/types';
 import { X, RefreshCw, XCircle, Loader2, CheckCircle2, AlertCircle, Clock, Ban } from 'lucide-react';
+import { useTranslation } from '@/i18n';
+import type { TranslationKey } from '@/i18n';
 
 interface JobProgressProps {
   onClose: () => void;
@@ -9,69 +11,55 @@ interface JobProgressProps {
 
 type JobStatus = 'processing' | 'done' | 'error' | 'cancelled' | 'queued';
 
-const statusConfig: Record<JobStatus, { dot: string; label: string; text: string; ring: string; bg: string }> = {
+type StatusConfigEntry = { dot: string; labelKey: TranslationKey; text: string; ring: string; bg: string };
+
+const statusConfig: Record<JobStatus, StatusConfigEntry> = {
   processing: {
     dot: 'bg-amber-400',
-    label: 'Läuft',
+    labelKey: 'jobs.running',
     text: 'text-amber-300',
     ring: 'ring-amber-500/20',
     bg: 'bg-amber-500/5',
   },
   done: {
     dot: 'bg-emerald-500',
-    label: 'Fertig',
+    labelKey: 'jobs.done',
     text: 'text-emerald-400',
     ring: 'ring-emerald-500/20',
     bg: 'bg-emerald-500/5',
   },
   error: {
     dot: 'bg-red-500',
-    label: 'Fehler',
+    labelKey: 'jobs.error',
     text: 'text-red-400',
     ring: 'ring-red-500/20',
     bg: 'bg-red-500/5',
   },
   cancelled: {
     dot: 'bg-orange-400',
-    label: 'Abgebrochen',
+    labelKey: 'jobs.cancelled',
     text: 'text-orange-400',
     ring: 'ring-orange-500/20',
     bg: 'bg-orange-500/5',
   },
   queued: {
     dot: 'bg-blue-400',
-    label: 'Wartend',
+    labelKey: 'jobs.pending',
     text: 'text-blue-400',
     ring: 'ring-blue-500/20',
     bg: 'bg-blue-500/5',
   },
 };
 
-function getStatusConfig(status: string) {
-  return statusConfig[status as JobStatus] ?? {
-    dot: 'bg-zinc-500',
-    label: status,
-    text: 'text-zinc-400',
-    ring: 'ring-zinc-700/50',
-    bg: 'bg-zinc-800/30',
-  };
-}
-
 function StatusIcon({ status, size = 12 }: { status: string; size?: number }) {
-  const cls = getStatusConfig(status).text;
+  const cfg = statusConfig[status as JobStatus];
+  const cls = cfg ? cfg.text : 'text-zinc-400';
   if (status === 'processing') return <Loader2 size={size} className={`${cls} animate-spin`} />;
   if (status === 'done') return <CheckCircle2 size={size} className={cls} />;
   if (status === 'error') return <AlertCircle size={size} className={cls} />;
   if (status === 'cancelled') return <Ban size={size} className={cls} />;
   if (status === 'queued') return <Clock size={size} className={cls} />;
-  return <div className={`w-1.5 h-1.5 rounded-full ${getStatusConfig(status).dot}`} />;
-}
-
-function typeLabel(type: string) {
-  if (type === 'crawl') return 'Crawl';
-  if (type === 'classify') return 'KI-Analyse';
-  if (type === 'rescan') return 'Re-Scan';
-  return type;
+  return <div className={`w-1.5 h-1.5 rounded-full ${cfg?.dot ?? 'bg-zinc-500'}`} />;
 }
 
 function shortenMessage(msg: string) {
@@ -84,6 +72,7 @@ function shortenMessage(msg: string) {
 }
 
 export function JobProgress({ onClose }: JobProgressProps) {
+  const { t } = useTranslation();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeProgress, setActiveProgress] = useState<{
     status: string;
@@ -95,6 +84,18 @@ export function JobProgress({ onClose }: JobProgressProps) {
 
   const esRef = useRef<EventSource | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  function getTypeLabel(type: string): string {
+    if (type === 'crawl') return 'Crawl';
+    if (type === 'classify') return t('jobs.classify');
+    if (type === 'rescan') return t('jobs.rescan');
+    return type;
+  }
+
+  function getStatusLabel(status: string): string {
+    const cfg = statusConfig[status as JobStatus];
+    return cfg ? t(cfg.labelKey) : status;
+  }
 
   async function fetchJobs() {
     try {
@@ -200,10 +201,10 @@ export function JobProgress({ onClose }: JobProgressProps) {
           ) : (
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
           )}
-          <span className="text-[13px] font-medium text-zinc-200 tracking-tight">Jobs</span>
+          <span className="text-[13px] font-medium text-zinc-200 tracking-tight">{t('jobs.title')}</span>
           {queuedJobs.length > 0 && (
             <span className="text-[11px] text-zinc-500 tabular-nums">
-              {queuedJobs.length} wartend
+              {queuedJobs.length} {t('jobs.waiting')}
             </span>
           )}
         </div>
@@ -211,14 +212,14 @@ export function JobProgress({ onClose }: JobProgressProps) {
           <button
             onClick={handleRefresh}
             className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
-            title="Aktualisieren"
+            title={t('jobs.refresh')}
           >
             <RefreshCw size={13} className={spinning ? 'animate-spin' : ''} />
           </button>
           <button
             onClick={onClose}
             className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
-            title="Schließen"
+            title={t('jobs.close')}
           >
             <X size={13} />
           </button>
@@ -240,7 +241,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
                   <Loader2 size={12} className="text-amber-300 animate-spin" />
                 </div>
                 <span className="text-[12px] font-medium text-amber-200">
-                  {typeLabel(activeJob.type)}
+                  {getTypeLabel(activeJob.type)}
                 </span>
               </div>
               <button
@@ -254,7 +255,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
                   p-1 rounded-md text-zinc-600 hover:text-red-400
                   hover:bg-red-500/10 transition-all duration-200
                 "
-                title="Abbrechen"
+                title={t('jobs.cancel')}
               >
                 <XCircle size={13} />
               </button>
@@ -296,7 +297,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
         <>
           <div className="h-px bg-gradient-to-r from-transparent via-zinc-700/50 to-transparent" />
           <div className="px-4 py-2.5">
-            <span className="text-[10px] text-zinc-600 uppercase tracking-widest">Warteschlange</span>
+            <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{t('jobs.queue')}</span>
             <ul className="mt-1.5 space-y-0.5">
               {queuedJobs.slice(0, 5).map((job) => (
                 <li
@@ -306,16 +307,16 @@ export function JobProgress({ onClose }: JobProgressProps) {
                     hover:bg-zinc-800/40 transition-colors duration-150
                   "
                 >
-                  <span className="text-[11px] text-zinc-400">{typeLabel(job.type)}</span>
+                  <span className="text-[11px] text-zinc-400">{getTypeLabel(job.type)}</span>
                   <div className="flex items-center gap-1.5">
                     <StatusIcon status={job.status} size={11} />
-                    <span className="text-[11px] text-blue-400/70">{getStatusConfig(job.status).label}</span>
+                    <span className="text-[11px] text-blue-400/70">{getStatusLabel(job.status)}</span>
                   </div>
                 </li>
               ))}
               {queuedJobs.length > 5 && (
                 <li className="text-[10px] text-zinc-600 py-1 px-2">
-                  +{queuedJobs.length - 5} weitere
+                  +{queuedJobs.length - 5} {t('jobs.more')}
                 </li>
               )}
             </ul>
@@ -328,27 +329,29 @@ export function JobProgress({ onClose }: JobProgressProps) {
 
       {/* Recent jobs */}
       <div className="px-4 py-2.5">
-        <span className="text-[10px] text-zinc-600 uppercase tracking-widest">Letzte Jobs</span>
+        <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{t('jobs.recent')}</span>
         {recentJobs.length === 0 ? (
-          <p className="text-[11px] text-zinc-600 py-3 text-center">Keine abgeschlossenen Jobs</p>
+          <p className="text-[11px] text-zinc-600 py-3 text-center">{t('jobs.noCompleted')}</p>
         ) : (
           <ul className="mt-1.5 space-y-0.5">
             {recentJobs.map((job) => {
-              const cfg = getStatusConfig(job.status);
+              const cfg = statusConfig[job.status as JobStatus];
+              const cfgText = cfg ? cfg.text : 'text-zinc-400';
+              const cfgBg = cfg ? cfg.bg : 'bg-zinc-800/30';
               return (
                 <li
                   key={job.id}
                   className={`
                     flex items-center justify-between py-1.5 px-2 rounded-md
-                    hover:${cfg.bg} transition-colors duration-150
+                    hover:${cfgBg} transition-colors duration-150
                   `}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <StatusIcon status={job.status} size={11} />
-                    <span className="text-[11px] text-zinc-400 truncate">{typeLabel(job.type)}</span>
+                    <span className="text-[11px] text-zinc-400 truncate">{getTypeLabel(job.type)}</span>
                   </div>
-                  <span className={`text-[11px] shrink-0 ml-2 ${cfg.text} opacity-70`}>
-                    {cfg.label}
+                  <span className={`text-[11px] shrink-0 ml-2 ${cfgText} opacity-70`}>
+                    {getStatusLabel(job.status)}
                   </span>
                 </li>
               );

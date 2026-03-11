@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, X, Check } from 'lucide-react';
 import { updateDocument } from '@/lib/api';
 import type { SearchDocument } from '@/lib/types';
+import { useTranslation } from '@/i18n';
 
 const BASE = '/api';
 
@@ -11,6 +12,7 @@ interface Props {
 }
 
 export function ReviewQueue({ onSelectDoc, onClose }: Props) {
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState<SearchDocument[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -53,7 +55,7 @@ export function ReviewQueue({ onSelectDoc, onClose }: Props) {
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-zinc-100">
-          Überprüfung{' '}
+          {t('review.title')}{' '}
           {!loading && (
             <span className="text-zinc-400">({documents.length})</span>
           )}
@@ -61,7 +63,7 @@ export function ReviewQueue({ onSelectDoc, onClose }: Props) {
         <button
           onClick={onClose}
           className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
-          aria-label="Schließen"
+          aria-label={t('review.close')}
         >
           <X size={16} />
         </button>
@@ -75,7 +77,7 @@ export function ReviewQueue({ onSelectDoc, onClose }: Props) {
       ) : documents.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-zinc-500">
           <Check size={32} />
-          <p className="text-sm">Keine Dokumente zur Überprüfung</p>
+          <p className="text-sm">{t('review.noDocuments')}</p>
         </div>
       ) : (
         <div className="flex flex-col overflow-y-auto">
@@ -108,7 +110,7 @@ export function ReviewQueue({ onSelectDoc, onClose }: Props) {
                 onClick={(e) => handleConfirm(e, doc)}
                 className="shrink-0 text-xs px-2 py-1 rounded bg-green-600 hover:bg-green-500 text-white transition-colors"
               >
-                Bestätigen
+                {t('review.confirm')}
               </button>
             </div>
           ))}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { listFavorites } from '@/lib/api';
 import type { SearchDocument } from '@/lib/types';
+import { useTranslation } from '@/i18n';
 
 interface FavoritesSidebarProps {
   onSelect: (id: number) => void;
@@ -14,6 +15,7 @@ function getDisplayTitle(doc: SearchDocument): string {
 }
 
 export function FavoritesSidebar({ onSelect }: FavoritesSidebarProps) {
+  const { t } = useTranslation();
   const [favorites, setFavorites] = useState<SearchDocument[]>([]);
 
   useEffect(() => {
@@ -26,7 +28,7 @@ export function FavoritesSidebar({ onSelect }: FavoritesSidebarProps) {
     <div className="border-b border-zinc-800 p-4">
       <h3 className="mb-2 flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
         <Heart size={12} className="fill-red-500 text-red-500" />
-        Favoriten
+        {t('favorites.title')}
       </h3>
       <ul className="flex flex-col gap-0.5">
         {favorites.slice(0, 10).map((doc) => (
@@ -44,7 +46,7 @@ export function FavoritesSidebar({ onSelect }: FavoritesSidebarProps) {
         ))}
         {favorites.length > 10 && (
           <li className="px-3 py-1 text-xs text-zinc-600">
-            +{favorites.length - 10} weitere
+            +{favorites.length - 10} {t('favorites.more')}
           </li>
         )}
       </ul>

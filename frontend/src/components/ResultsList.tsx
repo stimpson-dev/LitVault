@@ -2,6 +2,7 @@ import { Loader2 } from 'lucide-react';
 import { ResultRow } from './ResultRow';
 import { GridCard } from './GridCard';
 import type { SearchDocument, AppSettings } from '@/lib/types';
+import { useTranslation } from '@/i18n';
 
 interface ResultsListProps {
   documents?: SearchDocument[];
@@ -14,6 +15,8 @@ interface ResultsListProps {
 }
 
 export function ResultsList({ documents, total, loading, offset: _offset, onLoadMore, onSelect, viewMode = 'list' }: ResultsListProps) {
+  const { t } = useTranslation();
+
   if (loading && (!documents || documents.length === 0)) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -25,7 +28,7 @@ export function ResultsList({ documents, total, loading, offset: _offset, onLoad
   if (!documents || documents.length === 0) {
     return (
       <div className="py-12 text-center text-zinc-500 text-sm">
-        Keine Ergebnisse
+        {t('results.noResults')}
       </div>
     );
   }
@@ -48,7 +51,7 @@ export function ResultsList({ documents, total, loading, offset: _offset, onLoad
               disabled={loading}
               className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition-colors disabled:opacity-50"
             >
-              {loading ? 'Laden...' : 'Mehr laden'}
+              {loading ? t('results.loading') : t('results.loadMore')}
             </button>
           </div>
         )}
@@ -69,7 +72,7 @@ export function ResultsList({ documents, total, loading, offset: _offset, onLoad
             disabled={loading}
             className="px-4 py-2 rounded-lg bg-zinc-800 text-zinc-300 text-sm hover:bg-zinc-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Laden...' : 'Mehr laden'}
+            {loading ? t('results.loading') : t('results.loadMore')}
           </button>
         </div>
       )}

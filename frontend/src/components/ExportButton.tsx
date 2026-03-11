@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import { getExportUrl } from '@/lib/api';
 import type { SearchFilters } from '@/lib/types';
+import { useTranslation } from '@/i18n';
 
 interface ExportButtonProps {
   query: string;
@@ -10,6 +11,7 @@ interface ExportButtonProps {
 }
 
 export function ExportButton({ query, filters, disabled }: ExportButtonProps) {
+  const { t } = useTranslation();
   const [saving, setSaving] = useState(false);
 
   const handleExport = async () => {
@@ -24,7 +26,7 @@ export function ExportButton({ query, filters, disabled }: ExportButtonProps) {
           types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }],
         });
         const res = await fetch(url);
-        if (!res.ok) throw new Error('Export fehlgeschlagen');
+        if (!res.ok) throw new Error(t('toolbar.exportFailed'));
         const blob = await res.blob();
         const writable = await handle.createWritable();
         await writable.write(blob);
@@ -47,10 +49,10 @@ export function ExportButton({ query, filters, disabled }: ExportButtonProps) {
       onClick={handleExport}
       disabled={disabled || saving}
       className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      title="Als CSV exportieren"
+      title={t('toolbar.exportTitle')}
     >
       {saving ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-      <span>CSV Export</span>
+      <span>{t('toolbar.export')}</span>
     </button>
   );
 }

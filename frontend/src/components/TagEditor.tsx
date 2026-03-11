@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
 import { getDocumentTags, addDocumentTag, removeDocumentTag } from '@/lib/api';
 import type { TagItem } from '@/lib/types';
+import { useTranslation } from '@/i18n';
 
 interface Props {
   docId: number;
 }
 
 export function TagEditor({ docId }: Props) {
+  const { t } = useTranslation();
   const [tags, setTags] = useState<TagItem[]>([]);
   const [newTag, setNewTag] = useState('');
   const [loading, setLoading] = useState(false);
@@ -65,7 +67,7 @@ export function TagEditor({ docId }: Props) {
               <button
                 onClick={() => handleRemove(tag.id)}
                 className="hover:text-white cursor-pointer"
-                aria-label={`Tag ${tag.name} entfernen`}
+                aria-label={`${t('detail.removeTag')}: ${tag.name}`}
               >
                 <X size={10} />
               </button>
@@ -77,7 +79,7 @@ export function TagEditor({ docId }: Props) {
           value={newTag}
           onChange={(e) => setNewTag(e.target.value)}
           onKeyDown={handleAdd}
-          placeholder="Tag hinzufügen..."
+          placeholder={t('detail.addTag')}
           className="text-sm bg-zinc-800 border-none rounded px-2 py-1 text-zinc-200 placeholder-zinc-500 outline-none"
         />
       </div>

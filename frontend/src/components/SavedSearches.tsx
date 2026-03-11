@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createSavedSearch, listSavedSearches, deleteSavedSearch } from '@/lib/api';
 import type { SavedSearch, SearchFilters } from '@/lib/types';
 import { Trash2, X, Bookmark } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
 interface SavedSearchesProps {
   currentQuery: string;
@@ -11,6 +12,7 @@ interface SavedSearchesProps {
 }
 
 export function SavedSearches({ currentQuery, currentFilters, onLoadSearch, onClose }: SavedSearchesProps) {
+  const { t } = useTranslation();
   const [searches, setSearches] = useState<SavedSearch[]>([]);
   const [saveName, setSaveName] = useState('');
   const [saving, setSaving] = useState(false);
@@ -86,7 +88,7 @@ export function SavedSearches({ currentQuery, currentFilters, onLoadSearch, onCl
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 text-sm font-medium text-zinc-200">
           <Bookmark size={14} />
-          <span>Gespeicherte Suchen</span>
+          <span>{t('saved.title')}</span>
         </div>
         <button
           type="button"
@@ -112,13 +114,13 @@ export function SavedSearches({ currentQuery, currentFilters, onLoadSearch, onCl
           disabled={saving || !saveName.trim()}
           className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Speichern
+          {t('saved.save')}
         </button>
       </div>
 
       <div>
         {searches.length === 0 ? (
-          <p className="text-xs text-zinc-500 py-2">Keine gespeicherten Suchen</p>
+          <p className="text-xs text-zinc-500 py-2">{t('saved.noSaved')}</p>
         ) : (
           <ul>
             {searches.map((search) => (

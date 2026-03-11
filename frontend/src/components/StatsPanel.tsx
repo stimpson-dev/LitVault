@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { X, RefreshCw, Sparkles, RotateCcw, ScanEye, Check, AlertCircle } from 'lucide-react';
 import { getDashboardStats, classifyBatch, rescanAllErrors, rescanNoText } from '@/lib/api';
 import type { DashboardStats } from '@/lib/types';
+import { useTranslation } from '@/i18n';
 
 interface StatsPanelProps {
   onClose: () => void;
@@ -99,6 +100,7 @@ function StatCard({ label, count, total, accent = 'neutral', icon }: StatCardPro
 type ButtonFeedback = Record<string, string | null>;
 
 export function StatsPanel({ onClose }: StatsPanelProps) {
+  const { t } = useTranslation();
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [feedback, setFeedback] = useState<ButtonFeedback>({});
@@ -126,10 +128,10 @@ export function StatsPanel({ onClose }: StatsPanelProps) {
     try {
       const result = await action();
       const count = result.queued ?? 1;
-      setFeedback((prev) => ({ ...prev, [key]: `${count} Jobs gestartet` }));
+      setFeedback((prev) => ({ ...prev, [key]: `${count} ${t('stats.jobsStarted')}` }));
       fetchStats();
     } catch {
-      setFeedback((prev) => ({ ...prev, [key]: 'Fehler' }));
+      setFeedback((prev) => ({ ...prev, [key]: t('jobs.error') }));
     }
     setTimeout(() => setFeedback((prev) => ({ ...prev, [key]: null })), 4000);
   };
@@ -151,13 +153,13 @@ export function StatsPanel({ onClose }: StatsPanelProps) {
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-2.5">
           <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-[13px] font-medium text-zinc-200 tracking-tight">Dashboard</span>
+          <span className="text-[13px] font-medium text-zinc-200 tracking-tight">{t('stats.title')}</span>
         </div>
         <div className="flex items-center gap-1">
           <button
             onClick={handleRefresh}
             className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
-            title="Aktualisieren"
+            title={t('stats.refresh')}
           >
             <RefreshCw
               size={13}
@@ -167,7 +169,7 @@ export function StatsPanel({ onClose }: StatsPanelProps) {
           <button
             onClick={onClose}
             className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
-            title="Schließen"
+            title={t('stats.close')}
           >
             <X size={13} />
           </button>
@@ -177,42 +179,42 @@ export function StatsPanel({ onClose }: StatsPanelProps) {
       {/* Stats grid */}
       <div className="px-3 pb-3">
         {loading && !stats ? (
-          <div className="text-xs text-zinc-600 py-8 text-center">Lade Statistiken…</div>
+          <div className="text-xs text-zinc-600 py-8 text-center">{t('stats.loading')}</div>
         ) : stats ? (
           <div className="grid grid-cols-3 gap-2">
             <StatCard
-              label="Gesamt"
+              label={t('stats.total')}
               count={stats.total}
               icon={<span className="text-[11px] font-bold">#</span>}
             />
             <StatCard
-              label="Gescannt"
+              label={t('stats.scanned')}
               count={stats.by_status.done}
               total={stats.total}
               icon={<Check size={13} />}
             />
             <StatCard
-              label="Fehler"
+              label={t('stats.errors')}
               count={stats.errors}
               total={stats.total}
               accent="red"
               icon={<AlertCircle size={13} />}
             />
             <StatCard
-              label="KI analysiert"
+              label={t('stats.aiAnalyzed')}
               count={stats.by_classification.ai}
               total={stats.total}
               accent="emerald"
               icon={<Sparkles size={13} />}
             />
             <StatCard
-              label="Wartet auf KI"
+              label={t('stats.awaitingAI')}
               count={stats.needs_ai}
               total={stats.total}
               accent="amber"
             />
             <StatCard
-              label="OCR nötig"
+              label={t('stats.needsOCR')}
               count={stats.needs_ocr}
               total={stats.total}
               accent="orange"
@@ -228,23 +230,26 @@ export function StatsPanel({ onClose }: StatsPanelProps) {
       {/* Action buttons */}
       <div className="flex items-center gap-2 px-4 py-3">
         <ActionButton
-          label="KI-Batch"
+          label={t('stats.aiBatch')}
           icon={<Sparkles size={11} />}
           feedbackText={feedback['classify'] ?? null}
+          errorText={t('jobs.error')}
           onClick={() => runAction('classify', classifyBatch)}
           accent="emerald"
         />
         <ActionButton
-          label="Fehler scannen"
+          label={t('stats.scanErrors')}
           icon={<RotateCcw size={11} />}
           feedbackText={feedback['rescan-errors'] ?? null}
+          errorText={t('jobs.error')}
           onClick={() => runAction('rescan-errors', rescanAllErrors)}
           accent="red"
         />
         <ActionButton
-          label="OCR Re-Scan"
+          label={t('stats.ocrRescan')}
           icon={<ScanEye size={11} />}
           feedbackText={feedback['rescan-notext'] ?? null}
+          errorText={t('jobs.error')}
           onClick={() => runAction('rescan-notext', rescanNoText)}
           accent="orange"
         />
@@ -257,6 +262,7 @@ interface ActionButtonProps {
   label: string;
   icon?: React.ReactNode;
   feedbackText: string | null;
+  errorText: string;
   onClick: () => void;
   accent?: 'emerald' | 'red' | 'orange';
 }
@@ -267,7 +273,7 @@ const btnAccents: Record<string, string> = {
   orange: 'hover:border-orange-500/30 hover:text-orange-300',
 };
 
-function ActionButton({ label, icon, feedbackText, onClick, accent = 'emerald' }: ActionButtonProps) {
+function ActionButton({ label, icon, feedbackText, errorText, onClick, accent = 'emerald' }: ActionButtonProps) {
   const isFeedback = feedbackText !== null;
 
   return (
@@ -286,7 +292,7 @@ function ActionButton({ label, icon, feedbackText, onClick, accent = 'emerald' }
         {label}
       </button>
       {isFeedback && (
-        <span className={`text-[10px] ${feedbackText === 'Fehler' ? 'text-red-400' : 'text-zinc-500'}`}>
+        <span className={`text-[10px] ${feedbackText === errorText ? 'text-red-400' : 'text-zinc-500'}`}>
           {feedbackText}
         </span>
       )}

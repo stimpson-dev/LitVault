@@ -4,6 +4,7 @@ import { getDocument, updateDocument, classifyDocument, rescanDocument, openDocu
 import type { DocumentDetail as DocumentDetailType } from '@/lib/types';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { TagEditor } from '@/components/TagEditor';
+import { useTranslation } from '@/i18n';
 
 function formatFileSize(bytes: number): string {
   if (bytes >= 1024 * 1024 * 1024) {
@@ -31,6 +32,7 @@ interface Props {
 }
 
 export function DocumentDetail({ docId, onClose }: Props) {
+  const { t } = useTranslation();
   const [doc, setDoc] = useState<DocumentDetailType | null>(null);
   const [loading, setLoading] = useState(false);
   const [editingField, setEditingField] = useState<string | null>(null);
@@ -58,9 +60,9 @@ export function DocumentDetail({ docId, onClose }: Props) {
 
   const confidenceTier = (confidence: number | null): string => {
     if (confidence === null) return '—';
-    if (confidence >= 0.85) return 'Hoch';
-    if (confidence >= 0.55) return 'Mittel';
-    return 'Niedrig';
+    if (confidence >= 0.85) return t('detail.confidenceHigh');
+    if (confidence >= 0.55) return t('detail.confidenceMedium');
+    return t('detail.confidenceLow');
   };
 
   const startEditing = (field: string, currentValue: string) => {
@@ -136,7 +138,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
         <button
           onClick={() => startEditing(field, rawValue)}
           className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 transition-opacity"
-          aria-label={`${field} bearbeiten`}
+          aria-label={`${field} ${t('detail.edit')}`}
         >
           <Pencil size={11} />
         </button>
@@ -149,7 +151,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
       {/* Header — sticky at top */}
       <div className="flex items-start justify-between gap-2 p-4 border-b border-zinc-800 sticky top-0 bg-zinc-950 z-10">
         <h2 className="text-sm font-semibold text-zinc-100 leading-snug flex-1">
-          {loading ? 'Lade Dokument…' : (doc?.title ?? 'Kein Titel')}
+          {loading ? t('detail.loading') : (doc?.title ?? t('detail.noTitle'))}
         </h2>
         <div className="flex items-center gap-1 shrink-0">
           {doc && (
@@ -158,7 +160,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
           <button
             onClick={onClose}
             className="p-1 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
-            aria-label="Schließen"
+            aria-label={t('detail.close')}
           >
             <X size={16} />
           </button>
@@ -175,7 +177,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
           {/* Metadata grid */}
           <div className="p-4 border-b border-zinc-800">
             <div className="grid grid-cols-2 gap-2 text-xs">
-              <span className="text-zinc-500">Autoren</span>
+              <span className="text-zinc-500">{t('detail.authors')}</span>
               <EditableCell
                 field="authors"
                 displayValue={parseAuthors(doc.authors).join(', ') || '—'}
@@ -189,7 +191,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
                 rawValue={doc.year !== null ? String(doc.year) : ''}
               />
 
-              <span className="text-zinc-500">Dokumenttyp</span>
+              <span className="text-zinc-500">{t('detail.docType')}</span>
               <span>
                 {editingField === 'doc_type' ? (
                   <input
@@ -213,7 +215,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
                     <button
                       onClick={() => startEditing('doc_type', doc.doc_type ?? '')}
                       className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 transition-opacity"
-                      aria-label="Dokumenttyp bearbeiten"
+                      aria-label={`${t('detail.docType')} ${t('detail.edit')}`}
                     >
                       <Pencil size={11} />
                     </button>
@@ -221,32 +223,32 @@ export function DocumentDetail({ docId, onClose }: Props) {
                 )}
               </span>
 
-              <span className="text-zinc-500">Quelle</span>
+              <span className="text-zinc-500">{t('detail.source')}</span>
               <EditableCell
                 field="source"
                 displayValue={doc.source ?? '—'}
                 rawValue={doc.source ?? ''}
               />
 
-              <span className="text-zinc-500">Sprache</span>
+              <span className="text-zinc-500">{t('detail.language')}</span>
               <EditableCell
                 field="language"
                 displayValue={doc.language ?? '—'}
                 rawValue={doc.language ?? ''}
               />
 
-              <span className="text-zinc-500">Dateityp</span>
+              <span className="text-zinc-500">{t('detail.fileType')}</span>
               <span className="text-zinc-200">{doc.file_type}</span>
 
-              <span className="text-zinc-500">Seiten</span>
+              <span className="text-zinc-500">{t('detail.pages')}</span>
               <span className="text-zinc-200">{doc.page_count ?? '—'}</span>
 
-              <span className="text-zinc-500">Größe</span>
+              <span className="text-zinc-500">{t('detail.size')}</span>
               <span className="text-zinc-200">
                 {doc.file_size !== null ? formatFileSize(doc.file_size) : '—'}
               </span>
 
-              <span className="text-zinc-500">Konfidenz</span>
+              <span className="text-zinc-500">{t('detail.confidence')}</span>
               <span className="flex items-center gap-1.5 text-zinc-200">
                 {doc.classification_confidence !== null ? (
                   <>
@@ -261,7 +263,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
                             : 'bg-blue-600 text-white'
                         }`}
                       >
-                        {doc.classification_source === 'ai' ? 'AI' : 'Benutzer'}
+                        {doc.classification_source === 'ai' ? t('detail.classificationAI') : t('detail.classificationUser')}
                       </span>
                     )}
                   </>
@@ -276,11 +278,11 @@ export function DocumentDetail({ docId, onClose }: Props) {
           {(doc.file_type === 'pdf' || doc.file_type === '.pdf') && (
             <div className="p-4 border-b border-zinc-800">
               <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-                Vorschau
+                {t('detail.preview')}
               </h3>
               <img
                 src={`/api/documents/${doc.id}/thumbnail`}
-                alt="Vorschau"
+                alt={t('detail.preview')}
                 className="rounded border border-zinc-700 bg-zinc-900 max-w-full"
                 onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
               />
@@ -290,7 +292,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
           {/* Tags */}
           <div className="p-4 border-b border-zinc-800">
             <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-              Tags
+              {t('detail.tags')}
             </h3>
             <TagEditor docId={docId} />
           </div>
@@ -299,13 +301,13 @@ export function DocumentDetail({ docId, onClose }: Props) {
           <div className="p-4 border-b border-zinc-800">
             <div className="flex items-center gap-2 mb-2">
               <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider">
-                Zusammenfassung
+                {t('detail.summary')}
               </h3>
               {editingField !== 'summary' && (
                 <button
                   onClick={() => startEditing('summary', doc.summary ?? '')}
                   className="p-0.5 rounded hover:bg-zinc-700 text-zinc-500 hover:text-zinc-300 transition-colors"
-                  aria-label="Zusammenfassung bearbeiten"
+                  aria-label={t('detail.editSummary')}
                 >
                   <Pencil size={11} />
                 </button>
@@ -336,7 +338,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
                   setClassifyFeedback(null);
                   try {
                     const { job_id } = await classifyDocument(doc.id);
-                    setClassifyFeedback('Analyse läuft…');
+                    setClassifyFeedback(t('detail.analysisRunning'));
                     // Poll job status until done
                     const poll = setInterval(async () => {
                       try {
@@ -345,33 +347,33 @@ export function DocumentDetail({ docId, onClose }: Props) {
                         const job = await res.json();
                         if (job.status === 'done') {
                           clearInterval(poll);
-                          setClassifyFeedback('Analyse abgeschlossen');
+                          setClassifyFeedback(t('detail.analysisDone'));
                           const updated = await getDocument(doc.id);
                           setDoc(updated);
                         } else if (job.status === 'error') {
                           clearInterval(poll);
-                          setClassifyFeedback(`Analyse fehlgeschlagen: ${job.error ?? 'Unbekannter Fehler'}`);
+                          setClassifyFeedback(`${t('detail.analysisFailed')}: ${job.error ?? 'Unbekannter Fehler'}`);
                         }
                       } catch {
                         clearInterval(poll);
                       }
                     }, 2000);
                   } catch {
-                    setClassifyFeedback('Fehler beim Starten der Analyse');
+                    setClassifyFeedback(t('detail.analysisError'));
                   }
                 }}
                 className="text-xs px-3 py-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors"
               >
-                {classifyFeedback === 'Analyse läuft…' ? (
+                {classifyFeedback === t('detail.analysisRunning') ? (
                   <span className="flex items-center gap-1.5">
                     <Loader2 size={12} className="animate-spin" />
-                    Analyse läuft…
+                    {t('detail.analysisRunning')}
                   </span>
                 ) : (
-                  doc.classification_source ? 'KI-Analyse wiederholen' : 'KI-Analyse starten'
+                  doc.classification_source ? t('detail.classifyRetry') : t('detail.classifyStart')
                 )}
               </button>
-              {classifyFeedback && classifyFeedback !== 'Analyse läuft…' && (
+              {classifyFeedback && classifyFeedback !== t('detail.analysisRunning') && (
                 <span className="ml-3 text-xs text-zinc-400">{classifyFeedback}</span>
               )}
             </div>
@@ -380,7 +382,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
           {/* File path */}
           <div className="p-4">
             <h3 className="text-xs font-semibold text-zinc-300 uppercase tracking-wider mb-2">
-              Dateipfad
+              {t('detail.filePath')}
             </h3>
             <p className="text-xs font-mono bg-zinc-800 p-2 rounded break-all text-zinc-300">
               {doc.file_path}
@@ -394,7 +396,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
               className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
             >
               <FileText size={13} />
-              Dokument öffnen
+              {t('detail.openDoc')}
             </button>
             <button
               onClick={async () => {
@@ -405,7 +407,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
               className="mt-2 flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
             >
               <FolderOpen size={13} />
-              Im Explorer öffnen
+              {t('detail.openExplorer')}
             </button>
             {doc.processing_status === 'error' && (
               <div className="mt-3 flex items-center gap-3">
@@ -414,14 +416,14 @@ export function DocumentDetail({ docId, onClose }: Props) {
                     setRescanFeedback(null);
                     try {
                       await rescanDocument(doc.id);
-                      setRescanFeedback('Scan gestartet');
+                      setRescanFeedback(t('detail.scanStarted'));
                     } catch {
-                      setRescanFeedback('Fehler beim Starten des Scans');
+                      setRescanFeedback(t('detail.scanError'));
                     }
                   }}
                   className="text-xs px-3 py-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors"
                 >
-                  Erneut scannen
+                  {t('detail.rescan')}
                 </button>
                 {rescanFeedback && (
                   <span className="text-xs text-zinc-400">{rescanFeedback}</span>
@@ -432,7 +434,7 @@ export function DocumentDetail({ docId, onClose }: Props) {
         </div>
       ) : (
         <div className="flex flex-1 items-center justify-center">
-          <p className="text-sm text-zinc-500">Dokument nicht gefunden.</p>
+          <p className="text-sm text-zinc-500">{t('detail.notFound')}</p>
         </div>
       )}
     </div>

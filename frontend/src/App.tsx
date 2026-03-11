@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearch } from './hooks/useSearch';
 import { useSettings } from './hooks/useSettings';
 import { useTheme } from './hooks/useTheme';
+import { LanguageProvider } from './i18n';
 import { SearchBar } from './components/SearchBar';
 import { FilterSidebar } from './components/FilterSidebar';
 import { FilterChips } from './components/FilterChips';
@@ -63,6 +64,7 @@ function App() {
   };
 
   return (
+    <LanguageProvider language={settings.language}>
     <div className="h-screen bg-zinc-950 text-zinc-100 flex flex-col">
       {/* Top bar with search */}
       <header className="border-b border-zinc-800 p-4">
@@ -173,6 +175,7 @@ function App() {
       )}
 
     </div>
+    </LanguageProvider>
   );
 }
 

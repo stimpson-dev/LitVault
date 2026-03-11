@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Search } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
 interface SearchBarProps {
   query: string;
@@ -8,6 +9,7 @@ interface SearchBarProps {
 }
 
 export function SearchBar({ query, onQueryChange, resultCount }: SearchBarProps) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -31,12 +33,12 @@ export function SearchBar({ query, onQueryChange, resultCount }: SearchBarProps)
           type="text"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
-          placeholder="Dokumente durchsuchen... (Ctrl+K)"
+          placeholder={t('search.placeholder')}
           className="peer w-full rounded-lg bg-zinc-900 text-zinc-100 text-lg pl-12 pr-4 py-3.5 outline-none border border-zinc-800 focus:border-zinc-600 focus:shadow-[inset_0_1px_4px_0_rgb(0_0_0/_0.4),0_0_0_1px_theme(colors.zinc.700)] placeholder:text-zinc-500 transition-all"
         />
       </div>
       {resultCount !== undefined && (
-        <p className="mt-2 text-sm text-zinc-400">{resultCount} Ergebnisse</p>
+        <p className="mt-2 text-sm text-zinc-400">{resultCount} {t('results.count')}</p>
       )}
     </div>
   );

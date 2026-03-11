@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Heart } from 'lucide-react';
 import { toggleFavorite } from '@/lib/api';
+import { useTranslation } from '@/i18n';
 
 interface FavoriteButtonProps {
   docId: number;
@@ -9,6 +10,7 @@ interface FavoriteButtonProps {
 }
 
 export function FavoriteButton({ docId, favorited = false, onToggle }: FavoriteButtonProps) {
+  const { t } = useTranslation();
   const [isFavorited, setIsFavorited] = useState(favorited);
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +34,7 @@ export function FavoriteButton({ docId, favorited = false, onToggle }: FavoriteB
       onClick={handleClick}
       disabled={loading}
       className="p-1 rounded hover:bg-zinc-800 transition-colors"
-      title={isFavorited ? 'Aus Favoriten entfernen' : 'Zu Favoriten hinzufügen'}
+      title={isFavorited ? t('favorites.remove') : t('favorites.add')}
     >
       <Heart
         size={16}

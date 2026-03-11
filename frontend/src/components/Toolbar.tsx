@@ -2,6 +2,7 @@ import { Bookmark, ClipboardCheck, Settings, BarChart3, Activity } from 'lucide-
 import { ExportButton } from '@/components/ExportButton';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import type { SearchFilters } from '@/lib/types';
+import { useTranslation } from '@/i18n';
 
 interface ToolbarProps {
   onOpenSettings: () => void;
@@ -30,42 +31,44 @@ export function Toolbar({
   theme,
   onToggleTheme,
 }: ToolbarProps) {
+  const { t } = useTranslation();
+
   return (
     <div className="flex items-center gap-1 px-4 py-1.5 border-b border-zinc-800">
       <button
         onClick={onOpenSavedSearches}
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors"
-        title="Gespeicherte Suchen"
+        title={t('toolbar.savedSearches')}
       >
         <Bookmark size={14} />
-        <span>Suchen</span>
+        <span>{t('toolbar.search')}</span>
       </button>
 
       <button
         onClick={onOpenReviewQueue}
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors"
-        title="Überprüfung"
+        title={t('toolbar.reviewTitle')}
       >
         <ClipboardCheck size={14} />
-        <span>Prüfung</span>
+        <span>{t('toolbar.review')}</span>
       </button>
 
       <button
         onClick={onOpenStats}
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors"
-        title="Dashboard"
+        title={t('toolbar.dashboard')}
       >
         <BarChart3 size={14} />
-        <span>Dashboard</span>
+        <span>{t('toolbar.dashboard')}</span>
       </button>
 
       <button
         onClick={onOpenJobs}
         className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors"
-        title="Jobs"
+        title={t('toolbar.jobs')}
       >
         <Activity size={14} />
-        <span>Jobs</span>
+        <span>{t('toolbar.jobs')}</span>
         {hasActiveJob && (
           <span className="inline-block w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
         )}
@@ -82,10 +85,10 @@ export function Toolbar({
         <button
           onClick={onOpenSettings}
           className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 rounded transition-colors"
-          title="Einstellungen"
+          title={t('toolbar.settings')}
         >
           <Settings size={14} />
-          <span>Einstellungen</span>
+          <span>{t('toolbar.settings')}</span>
         </button>
       </div>
     </div>
