@@ -27,6 +27,7 @@ class Document(Base):
     has_text = Column(Boolean, default=False, nullable=False)
     doi = Column(String, nullable=True)
     processing_status = Column(String, default="pending", nullable=False)  # pending/processing/done/error
+    excluded = Column(Boolean, default=False, nullable=False)
     classification_confidence = Column(Float, nullable=True)
     classification_source = Column(String, nullable=True)
     created_at = Column(String, server_default=text("datetime('now')"), nullable=False)

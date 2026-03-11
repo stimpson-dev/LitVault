@@ -63,6 +63,7 @@ export interface DocumentDetail extends SearchDocument {
   doi: string | null;
   updated_at: string;
   indexed_at: string | null;
+  excluded: boolean;
 }
 
 export interface TagItem {

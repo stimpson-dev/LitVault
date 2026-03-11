@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { X, Loader2, Pencil, FolderOpen, FileText } from 'lucide-react';
-import { getDocument, updateDocument, classifyDocument, rescanDocument, openDocument } from '@/lib/api';
+import { X, Loader2, Pencil, FolderOpen, FileText, Trash2, RotateCcw } from 'lucide-react';
+import { getDocument, updateDocument, classifyDocument, rescanDocument, openDocument, excludeDocument, restoreDocument, ApiError } from '@/lib/api';
 import type { DocumentDetail as DocumentDetailType } from '@/lib/types';
 import { FavoriteButton } from '@/components/FavoriteButton';
 import { TagEditor } from '@/components/TagEditor';
@@ -417,8 +417,11 @@ export function DocumentDetail({ docId, onClose }: Props) {
                     try {
                       await rescanDocument(doc.id);
                       setRescanFeedback(t('detail.scanStarted'));
-                    } catch {
-                      setRescanFeedback(t('detail.scanError'));
+                    } catch (err: unknown) {
+                      const msg = err instanceof ApiError && err.status === 400
+                        ? t('detail.fileUnreachable')
+                        : t('detail.scanError');
+                      setRescanFeedback(msg);
                     }
                   }}
                   className="text-xs px-3 py-1.5 rounded bg-zinc-700 hover:bg-zinc-600 text-zinc-200 transition-colors"
@@ -430,6 +433,39 @@ export function DocumentDetail({ docId, onClose }: Props) {
                 )}
               </div>
             )}
+
+            {/* Exclude / Restore */}
+            <div className="mt-4 pt-3 border-t border-zinc-800">
+              {doc.excluded ? (
+                <button
+                  onClick={async () => {
+                    try {
+                      await restoreDocument(doc.id);
+                      const updated = await getDocument(doc.id);
+                      setDoc(updated);
+                    } catch { /* ignore */ }
+                  }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-emerald-900/40 hover:bg-emerald-800/50 text-emerald-300 transition-colors"
+                >
+                  <RotateCcw size={12} />
+                  {t('detail.restore')}
+                </button>
+              ) : (
+                <button
+                  onClick={async () => {
+                    if (!confirm(t('detail.excludeConfirm'))) return;
+                    try {
+                      await excludeDocument(doc.id);
+                      onClose();
+                    } catch { /* ignore */ }
+                  }}
+                  className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded bg-zinc-800 hover:bg-red-900/40 text-zinc-500 hover:text-red-300 transition-colors"
+                >
+                  <Trash2 size={12} />
+                  {t('detail.exclude')}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       ) : (

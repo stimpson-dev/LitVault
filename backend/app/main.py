@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
-from app.database import engine, Base, ensure_fts5
+from app.database import engine, Base, ensure_columns, ensure_fts5
 from app.documents import models  # noqa: F401 — register models with Base
 from app.documents.router import router as documents_router
 from app.search.router import router as search_router
@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
     # Startup: create tables + FTS5
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    await ensure_columns()
     await ensure_fts5()
 
     settings = get_settings()

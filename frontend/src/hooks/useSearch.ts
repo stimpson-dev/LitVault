@@ -57,9 +57,26 @@ export function useSearch(options: UseSearchOptions = {}) {
       .finally(() => setLoading(false));
   }, [query, filters, documents.length, resultsPerPage, defaultSort]);
 
+  // Force re-fetch current search from scratch
+  const refresh = useCallback(() => {
+    setOffset(0);
+    setDocuments([]);
+    setLoading(true);
+    searchDocuments(query, filters, 0, resultsPerPage, defaultSort)
+      .then((data) => {
+        setDocuments(data.documents);
+        setMeta({ total: data.total, facets: data.facets });
+      })
+      .catch(() => {
+        setDocuments([]);
+        setMeta(null);
+      })
+      .finally(() => setLoading(false));
+  }, [query, filters, resultsPerPage, defaultSort]);
+
   const results: SearchResponse | null = meta
     ? { documents, total: meta.total, facets: meta.facets, query }
     : null;
 
-  return { query, setQuery, filters, setFilters, results, loading, offset, setOffset: loadMore };
+  return { query, setQuery, filters, setFilters, results, loading, offset, setOffset: loadMore, refresh };
 }

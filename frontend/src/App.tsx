@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearch } from './hooks/useSearch';
+import { excludeBatch } from './lib/api';
 import { useSettings } from './hooks/useSettings';
 import { useTheme } from './hooks/useTheme';
 import { LanguageProvider } from './i18n';
@@ -28,6 +29,40 @@ function App() {
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [showSettings, setShowSettings] = useState(false);
   const [activePanel, setActivePanel] = useState<Panel>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const handleToggleSelect = useCallback((id: number) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const handleSelectAll = useCallback(() => {
+    if (!search.results?.documents) return;
+    setSelectedIds(new Set(search.results.documents.map((d) => d.id)));
+  }, [search.results?.documents]);
+
+  const handleDeselectAll = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  const handleExcludeSelected = useCallback(async () => {
+    if (selectedIds.size === 0) return;
+    try {
+      await excludeBatch([...selectedIds]);
+      setSelectedIds(new Set());
+      setSelectedDocId(null);
+      search.refresh();
+    } catch { /* ignore */ }
+  }, [selectedIds, search]);
+
+  // Clear selection when search results change
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [search.results?.documents]);
 
   // Sync theme setting from backend to useTheme hook
   useEffect(() => {
@@ -153,6 +188,11 @@ function App() {
                 onLoadMore={() => search.setOffset()}
                 onSelect={setSelectedDocId}
                 viewMode={settings.view_mode}
+                selectedIds={selectedIds}
+                onToggleSelect={handleToggleSelect}
+                onSelectAll={handleSelectAll}
+                onDeselectAll={handleDeselectAll}
+                onExcludeSelected={handleExcludeSelected}
               />
             </>
           )}

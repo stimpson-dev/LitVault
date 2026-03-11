@@ -174,15 +174,46 @@ export async function classifyBatch(): Promise<{ job_id: string }> {
 }
 
 // Rescan
+export class ApiError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+  }
+}
+
 export async function rescanDocument(docId: number): Promise<{ job_id: string }> {
   const res = await fetch(`${BASE}/documents/${docId}/rescan`, { method: 'POST' });
-  if (!res.ok) throw new Error('Rescan failed');
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new ApiError(res.status, body?.detail ?? `Rescan failed: ${res.status}`);
+  }
   return res.json() as Promise<{ job_id: string }>;
 }
 
 export async function openDocument(docId: number): Promise<{ opened: boolean }> {
   const res = await fetch(`${BASE}/documents/${docId}/open`, { method: 'POST' });
   if (!res.ok) throw new Error(`Open failed: ${res.status}`);
+  return res.json();
+}
+
+export async function excludeDocument(docId: number): Promise<{ excluded: boolean }> {
+  const res = await fetch(`${BASE}/documents/${docId}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Exclude failed: ${res.status}`);
+  return res.json();
+}
+
+export async function excludeBatch(ids: number[]): Promise<{ excluded: number }> {
+  const res = await fetch(`${BASE}/documents/exclude-batch`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ids }),
+  });
+  if (!res.ok) throw new Error(`Batch exclude failed: ${res.status}`);
+  return res.json();
+}
+
+export async function restoreDocument(docId: number): Promise<{ excluded: boolean }> {
+  const res = await fetch(`${BASE}/documents/${docId}/restore`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Restore failed: ${res.status}`);
   return res.json();
 }
 

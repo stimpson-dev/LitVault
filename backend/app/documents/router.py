@@ -20,6 +20,10 @@ class CrawlRequest(BaseModel):
     folder: str
 
 
+class BatchIdsRequest(BaseModel):
+    ids: list[int]
+
+
 class DocumentUpdate(BaseModel):
     title: str | None = None
     authors: str | None = None
@@ -48,6 +52,7 @@ async def get_stats(db: AsyncSession = Depends(get_db)) -> dict:
             SUM(CASE WHEN processing_status = 'done' AND has_text = 1 AND (classification_source IS NULL OR classification_source != 'ai') THEN 1 ELSE 0 END) AS needs_ai,
             SUM(CASE WHEN processing_status = 'done' AND has_text = 0 AND (classification_source = 'filename' OR classification_source IS NULL) THEN 1 ELSE 0 END) AS needs_ocr
         FROM documents
+        WHERE excluded = 0
     """))
     r = rows.mappings().one()
     return {
@@ -94,7 +99,7 @@ async def list_documents(
     if limit > 200:
         limit = 200
     result = await db.execute(
-        select(Document).order_by(Document.created_at.desc()).offset(offset).limit(limit)
+        select(Document).where(Document.excluded == False).order_by(Document.created_at.desc()).offset(offset).limit(limit)
     )
     docs = result.scalars().all()
     return [
@@ -168,6 +173,7 @@ async def get_document(
         "created_at": doc.created_at,
         "updated_at": doc.updated_at,
         "indexed_at": doc.indexed_at,
+        "excluded": doc.excluded,
     }
 
 
@@ -210,6 +216,7 @@ async def update_document(
         "created_at": doc.created_at,
         "updated_at": doc.updated_at,
         "indexed_at": doc.indexed_at,
+        "excluded": doc.excluded,
     }
 
 
@@ -311,6 +318,10 @@ async def rescan_document(
     if doc is None:
         raise HTTPException(status_code=404, detail="Document not found")
 
+    # Pre-flight: check file is reachable
+    if not Path(doc.file_path).exists():
+        raise HTTPException(status_code=400, detail="Datei nicht erreichbar (Laufwerk/Pfad nicht verfügbar)")
+
     queue = jobs_router_mod._queue
     store = jobs_router_mod._store
     if queue is None or store is None:
@@ -340,18 +351,25 @@ async def rescan_all_errors(
         raise HTTPException(status_code=503, detail="Job system not initialized")
 
     result = await db.execute(
-        select(Document).where(Document.processing_status == "error")
+        select(Document).where(
+            Document.processing_status == "error",
+            Document.excluded == False,
+        )
     )
     docs = result.scalars().all()
 
-    for doc in docs:
+    # Filter to reachable files only
+    reachable = [d for d in docs if Path(d.file_path).exists()]
+    skipped = len(docs) - len(reachable)
+
+    for doc in reachable:
         doc.processing_status = "pending"
         doc.full_text = None
         doc.has_text = False
     await db.commit()
 
     queued = 0
-    for doc in docs:
+    for doc in reachable:
         job = store.create_job(
             JobType.RESCAN,
             {"document_id": doc.id, "file_path": doc.file_path, "file_type": doc.file_type},
@@ -359,7 +377,7 @@ async def rescan_all_errors(
         await queue.put(job)
         queued += 1
 
-    return {"queued": queued}
+    return {"queued": queued, "skipped_unreachable": skipped}
 
 
 @router.post("/documents/rescan-no-text")
@@ -376,17 +394,21 @@ async def rescan_no_text(
         select(Document).where(
             Document.processing_status == "done",
             Document.has_text == False,
+            Document.excluded == False,
         )
     )
     docs = result.scalars().all()
 
-    for doc in docs:
+    reachable = [d for d in docs if Path(d.file_path).exists()]
+    skipped = len(docs) - len(reachable)
+
+    for doc in reachable:
         doc.processing_status = "pending"
         doc.full_text = None
     await db.commit()
 
     queued = 0
-    for doc in docs:
+    for doc in reachable:
         job = store.create_job(
             JobType.RESCAN,
             {"document_id": doc.id, "file_path": doc.file_path, "file_type": doc.file_type},
@@ -394,7 +416,55 @@ async def rescan_no_text(
         await queue.put(job)
         queued += 1
 
-    return {"queued": queued}
+    return {"queued": queued, "skipped_unreachable": skipped}
+
+
+@router.delete("/documents/{doc_id}")
+async def exclude_document(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Soft-delete: mark document as excluded so it won't reappear on next crawl."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    doc.excluded = True
+    await db.commit()
+    return {"excluded": True, "id": doc_id}
+
+
+@router.post("/documents/exclude-batch")
+async def exclude_batch(
+    body: BatchIdsRequest,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Soft-delete multiple documents at once."""
+    if not body.ids:
+        return {"excluded": 0}
+    result = await db.execute(
+        select(Document).where(Document.id.in_(body.ids))
+    )
+    docs = result.scalars().all()
+    for doc in docs:
+        doc.excluded = True
+    await db.commit()
+    return {"excluded": len(docs)}
+
+
+@router.post("/documents/{doc_id}/restore")
+async def restore_document(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Undo exclusion: make document visible again."""
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if doc is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    doc.excluded = False
+    await db.commit()
+    return {"excluded": False, "id": doc_id}
 
 
 @router.post("/documents/{doc_id}/favorite")
@@ -420,6 +490,7 @@ async def list_favorites(
     result = await db.execute(
         select(Document)
         .join(Favorite, Favorite.document_id == Document.id)
+        .where(Document.excluded == False)
         .order_by(Favorite.added_at.desc())
     )
     docs = result.scalars().all()

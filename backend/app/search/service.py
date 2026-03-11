@@ -57,7 +57,7 @@ class SearchService:
 
         sanitized = sanitize_fts5_query(query)
         params: dict = {}
-        filter_clauses: list[str] = []
+        filter_clauses: list[str] = ["AND d.excluded = 0"]
 
         # Build metadata filter clauses (always applied to the documents table alias d)
         if filters.doc_type is not None:
@@ -195,7 +195,7 @@ class SearchService:
 
         sanitized = sanitize_fts5_query(query)
         params: dict = {}
-        filter_clauses: list[str] = []
+        filter_clauses: list[str] = ["AND d.excluded = 0"]
 
         if filters.doc_type is not None:
             filter_clauses.append("AND d.doc_type = :doc_type")

@@ -57,19 +57,34 @@ function getDisplayTitle(doc: SearchDocument): string {
 interface GridCardProps {
   doc: SearchDocument;
   onSelect: (id: number) => void;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }
 
-export function GridCard({ doc, onSelect }: GridCardProps) {
+export function GridCard({ doc, onSelect, selected, onToggleSelect }: GridCardProps) {
   const displayTitle = getDisplayTitle(doc);
 
   return (
-    <button
-      type="button"
+    <div
       onClick={() => onSelect(doc.id)}
-      className="text-left rounded-lg border border-zinc-800 p-4 hover:bg-zinc-800/50 hover:border-blue-500/50 transition-colors flex flex-col gap-2"
+      className={`text-left rounded-lg border p-4 hover:bg-zinc-800/50 transition-colors flex flex-col gap-2 cursor-pointer ${selected ? 'border-blue-500 bg-blue-950/30' : 'border-zinc-800 hover:border-blue-500/50'}`}
     >
       <div className="flex items-start justify-between gap-2">
-        {getFileIcon(doc.file_type)}
+        <div className="flex items-center gap-2">
+          {onToggleSelect && (
+            <input
+              type="checkbox"
+              checked={selected ?? false}
+              onChange={(e) => {
+                e.stopPropagation();
+                onToggleSelect(doc.id);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              className="shrink-0 accent-blue-500 cursor-pointer"
+            />
+          )}
+          {getFileIcon(doc.file_type)}
+        </div>
         <FavoriteButton docId={doc.id} />
       </div>
       <div className="min-w-0 flex-1">
@@ -94,6 +109,6 @@ export function GridCard({ doc, onSelect }: GridCardProps) {
           {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
         </Badge>
       )}
-    </button>
+    </div>
   );
 }

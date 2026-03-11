@@ -71,13 +71,17 @@ async def scan_folder(folder: str | Path) -> AsyncGenerator[dict, None]:
 
 async def find_new_files(folder: str | Path, db: AsyncSession) -> list[dict]:
     result = await db.execute(
-        text("SELECT file_path, file_hash FROM documents")
+        text("SELECT file_path, file_hash, excluded FROM documents")
     )
-    existing = {row[0]: row[1] for row in result.fetchall()}
+    rows = result.fetchall()
+    existing = {row[0]: row[1] for row in rows}
+    excluded_paths = {row[0] for row in rows if row[2]}
 
     new_files: list[dict] = []
     async for meta in scan_folder(folder):
         path_str = meta["file_path"]
+        if path_str in excluded_paths:
+            continue  # skip files the user has excluded
         if path_str not in existing or existing[path_str] != meta["file_hash"]:
             new_files.append(meta)
 

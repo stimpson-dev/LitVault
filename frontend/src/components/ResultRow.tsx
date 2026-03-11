@@ -24,6 +24,8 @@ const DOC_TYPE_LABELS: Record<string, string> = {
 interface ResultRowProps {
   doc: SearchDocument;
   onSelect: (id: number) => void;
+  selected?: boolean;
+  onToggleSelect?: (id: number) => void;
 }
 
 function getFileIcon(fileType: string) {
@@ -59,16 +61,27 @@ function getDisplayTitle(doc: SearchDocument): string {
   return parts[parts.length - 1] ?? doc.file_path;
 }
 
-export function ResultRow({ doc, onSelect }: ResultRowProps) {
+export function ResultRow({ doc, onSelect, selected, onToggleSelect }: ResultRowProps) {
   const displayTitle = getDisplayTitle(doc);
 
   return (
-    <button
-      type="button"
+    <div
+      className={`w-full text-left border-b border-zinc-800 p-4 hover:bg-zinc-800/50 transition-colors flex items-start gap-3 cursor-pointer ${selected ? 'bg-blue-950/30 border-l-2 border-l-blue-500' : 'hover:border-l-2 hover:border-l-blue-500'}`}
       onClick={() => onSelect(doc.id)}
-      className="w-full text-left border-b border-zinc-800 p-4 hover:bg-zinc-800/50 hover:border-l-2 hover:border-l-blue-500 transition-colors"
     >
-      <div className="flex items-start gap-3">
+      {onToggleSelect && (
+        <input
+          type="checkbox"
+          checked={selected ?? false}
+          onChange={(e) => {
+            e.stopPropagation();
+            onToggleSelect(doc.id);
+          }}
+          onClick={(e) => e.stopPropagation()}
+          className="mt-1 shrink-0 accent-blue-500 cursor-pointer"
+        />
+      )}
+      <div className="flex items-start gap-3 min-w-0 flex-1">
         {getFileIcon(doc.file_type)}
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
@@ -104,6 +117,6 @@ export function ResultRow({ doc, onSelect }: ResultRowProps) {
         </div>
         <FavoriteButton docId={doc.id} />
       </div>
-    </button>
+    </div>
   );
 }

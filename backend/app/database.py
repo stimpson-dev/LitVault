@@ -28,6 +28,17 @@ def set_sqlite_pragma(dbapi_conn, connection_record):
     cursor.execute("PRAGMA busy_timeout=30000")
     cursor.close()
 
+async def ensure_columns():
+    """Add columns that may be missing from an older schema."""
+    async with engine.begin() as conn:
+        result = await conn.execute(sa_text("PRAGMA table_info(documents)"))
+        existing = {row[1] for row in result.fetchall()}
+        if "excluded" not in existing:
+            await conn.execute(sa_text(
+                "ALTER TABLE documents ADD COLUMN excluded BOOLEAN NOT NULL DEFAULT 0"
+            ))
+
+
 async def ensure_fts5():
     """Create FTS5 virtual table and triggers if they don't exist.
 

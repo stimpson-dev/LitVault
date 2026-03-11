@@ -71,6 +71,7 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
                                     Document.processing_status == "done",
                                     Document.classification_source.is_(None),
                                     Document.has_text.is_(True),
+                                    Document.excluded == False,
                                 )
                             )
                             docs = result.scalars().all()

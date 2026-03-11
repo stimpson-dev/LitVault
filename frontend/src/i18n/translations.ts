@@ -42,6 +42,10 @@ const de = {
   "results.loadMore": "Mehr laden",
   "results.loading": "Laden...",
   "results.count": "Ergebnisse",
+  "results.selected": "ausgewählt",
+  "results.excludeSelected": "Auswahl entfernen",
+  "results.selectAll": "Alle auswählen",
+  "results.deselectAll": "Auswahl aufheben",
 
   // Search
   "search.placeholder": "Dokumente durchsuchen... (Ctrl+K)",
@@ -136,6 +140,12 @@ const de = {
   "detail.scanStarted": "Scan gestartet",
   "detail.scanError": "Fehler beim Starten des Scans",
   "detail.rescan": "Erneut scannen",
+  "detail.exclude": "Aus Archiv entfernen",
+  "detail.excludeConfirm": "Dokument wird beim nächsten Scan ignoriert. Fortfahren?",
+  "detail.excluded": "Entfernt",
+  "detail.restore": "Wiederherstellen",
+  "detail.restored": "Wiederhergestellt",
+  "detail.fileUnreachable": "Datei nicht erreichbar (Laufwerk nicht verfügbar)",
   "detail.notFound": "Dokument nicht gefunden.",
   "detail.edit": "bearbeiten",
 
@@ -238,6 +248,10 @@ const en: Record<keyof typeof de, string> = {
   "results.loadMore": "Load more",
   "results.loading": "Loading...",
   "results.count": "results",
+  "results.selected": "selected",
+  "results.excludeSelected": "Remove selected",
+  "results.selectAll": "Select all",
+  "results.deselectAll": "Deselect all",
 
   // Search
   "search.placeholder": "Search documents... (Ctrl+K)",
@@ -332,6 +346,12 @@ const en: Record<keyof typeof de, string> = {
   "detail.scanStarted": "Scan started",
   "detail.scanError": "Error starting scan",
   "detail.rescan": "Rescan",
+  "detail.exclude": "Remove from archive",
+  "detail.excludeConfirm": "Document will be ignored on next scan. Continue?",
+  "detail.excluded": "Removed",
+  "detail.restore": "Restore",
+  "detail.restored": "Restored",
+  "detail.fileUnreachable": "File not reachable (drive not available)",
   "detail.notFound": "Document not found.",
   "detail.edit": "edit",
 
