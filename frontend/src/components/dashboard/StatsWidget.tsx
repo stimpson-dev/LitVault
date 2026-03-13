@@ -214,6 +214,7 @@ export function StatsWidget() {
               count={stats.by_status.done}
               total={stats.total}
               icon={<Check size={13} />}
+              onClick={() => navigate('/?processing_status=done')}
             />
             <StatCard
               label={t('stats.errors')}
@@ -229,7 +230,7 @@ export function StatsWidget() {
               total={stats.total}
               accent="emerald"
               icon={<Sparkles size={13} />}
-              onClick={() => navigate('/')}
+              onClick={() => navigate('/?classification_source=ai')}
             />
             <StatCard
               label={t('stats.awaitingAI')}
@@ -243,7 +244,7 @@ export function StatsWidget() {
               total={stats.total}
               accent="orange"
               icon={<ScanEye size={13} />}
-              onClick={() => navigate('/?processing_status=done')}
+              onClick={() => navigate('/?processing_status=done&has_text=false')}
             />
           </div>
         ) : null}

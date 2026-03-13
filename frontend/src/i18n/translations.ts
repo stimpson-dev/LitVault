@@ -244,6 +244,11 @@ const de = {
   "chips.size": "Größe",
   "chips.yearFrom": "ab",
   "chips.yearTo": "bis",
+  "chips.hasText": "Mit Text",
+  "chips.noText": "Ohne Text (OCR nötig)",
+  "chips.cls.ai": "KI-klassifiziert",
+  "chips.cls.filename": "Dateiname-klassifiziert",
+  "chips.cls.user": "Manuell klassifiziert",
 
   // Document toolbar
   "toolbar.sortBy": "Sortieren nach",
@@ -519,6 +524,11 @@ const en: Record<keyof typeof de, string> = {
   "chips.size": "Size",
   "chips.yearFrom": "from",
   "chips.yearTo": "to",
+  "chips.hasText": "Has text",
+  "chips.noText": "No text (needs OCR)",
+  "chips.cls.ai": "AI classified",
+  "chips.cls.filename": "Filename classified",
+  "chips.cls.user": "Manually classified",
 
   // Document toolbar
   "toolbar.sortBy": "Sort by",

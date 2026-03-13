@@ -1,4 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext, createContext, createElement } from 'react';
+import type { ReactNode } from 'react';
 import { getAppSettings, updateAppSettings } from '@/lib/api';
 import type { AppSettings } from '@/lib/types';
 
@@ -17,7 +18,16 @@ const DEFAULTS: AppSettings = {
   log_level: '',
 };
 
-export function useSettings() {
+interface SettingsContextValue {
+  settings: AppSettings;
+  loaded: boolean;
+  update: (patch: Partial<AppSettings>) => Promise<AppSettings>;
+  refresh: () => void;
+}
+
+const SettingsContext = createContext<SettingsContextValue | null>(null);
+
+export function SettingsProvider({ children }: { children: ReactNode }) {
   const [settings, setSettings] = useState<AppSettings>(DEFAULTS);
   const [loaded, setLoaded] = useState(false);
 
@@ -40,5 +50,13 @@ export function useSettings() {
     getAppSettings().then(setSettings).catch(() => {});
   }, []);
 
-  return { settings, loaded, update, refresh };
+  return createElement(SettingsContext.Provider, { value: { settings, loaded, update, refresh } }, children);
+}
+
+export function useSettings() {
+  const ctx = useContext(SettingsContext);
+  if (!ctx) {
+    throw new Error('useSettings must be used within a SettingsProvider');
+  }
+  return ctx;
 }

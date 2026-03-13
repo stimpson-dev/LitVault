@@ -17,6 +17,8 @@ export async function searchDocuments(
   if (filters.year_max) params.set('year_max', String(filters.year_max));
   if (filters.language) params.set('language', filters.language);
   if (filters.author) params.set('author', filters.author);
+  if (filters.has_text !== undefined) params.set('has_text', String(filters.has_text));
+  if (filters.classification_source) params.set('classification_source', filters.classification_source);
   if (filters.file_type) params.set('file_type', filters.file_type);
   if (filters.processing_status) params.set('processing_status', filters.processing_status);
   if (filters.file_size_min) params.set('file_size_min', String(filters.file_size_min));
@@ -46,6 +48,8 @@ export async function getFacets(filters: SearchFilters = {}): Promise<SearchFace
   if (filters.year_max) params.set('year_max', String(filters.year_max));
   if (filters.language) params.set('language', filters.language);
   if (filters.author) params.set('author', filters.author);
+  if (filters.has_text !== undefined) params.set('has_text', String(filters.has_text));
+  if (filters.classification_source) params.set('classification_source', filters.classification_source);
   if (filters.file_type) params.set('file_type', filters.file_type);
   if (filters.processing_status) params.set('processing_status', filters.processing_status);
   if (filters.file_size_min) params.set('file_size_min', String(filters.file_size_min));
@@ -247,6 +251,8 @@ export function getExportUrl(query: string, filters: SearchFilters): string {
   if (filters.year_max) params.set('year_max', String(filters.year_max));
   if (filters.language) params.set('language', filters.language);
   if (filters.author) params.set('author', filters.author);
+  if (filters.has_text !== undefined) params.set('has_text', String(filters.has_text));
+  if (filters.classification_source) params.set('classification_source', filters.classification_source);
   if (filters.file_type) params.set('file_type', filters.file_type);
   if (filters.processing_status) params.set('processing_status', filters.processing_status);
   if (filters.file_size_min) params.set('file_size_min', String(filters.file_size_min));

@@ -12,6 +12,7 @@ def generate_thumbnail(
 ) -> "Path | None":
     try:
         import fitz
+        fitz.TOOLS.mupdf_display_errors(False)
 
         output_dir.mkdir(parents=True, exist_ok=True)
 

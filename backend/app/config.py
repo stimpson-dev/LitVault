@@ -29,7 +29,7 @@ class Settings(BaseSettings):
     db_path: str = "litvault.db"
     thumbnails_dir: str = "thumbnails"
     log_level: str = "INFO"
-    parse_timeout_seconds: int = 600
+    parse_timeout_seconds: int = 1200
 
     model_config = SettingsConfigDict(
         json_file=CONFIG_PATH if CONFIG_PATH.exists() else None,

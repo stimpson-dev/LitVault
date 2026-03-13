@@ -18,6 +18,7 @@ class SearchFilters:
     language: str | None = None
     author: str | None = None
     has_text: bool | None = None
+    classification_source: str | None = None
     file_type: str | None = None
     processing_status: str | None = None
     file_size_min: int | None = None
@@ -83,6 +84,10 @@ class SearchService:
         if filters.has_text is not None:
             filter_clauses.append("AND d.has_text = :has_text")
             params["has_text"] = filters.has_text
+
+        if filters.classification_source is not None:
+            filter_clauses.append("AND d.classification_source = :classification_source")
+            params["classification_source"] = filters.classification_source
 
         if filters.file_type is not None:
             filter_clauses.append("AND d.file_type = :file_type")
@@ -220,6 +225,10 @@ class SearchService:
         if filters.has_text is not None:
             filter_clauses.append("AND d.has_text = :has_text")
             params["has_text"] = filters.has_text
+
+        if filters.classification_source is not None:
+            filter_clauses.append("AND d.classification_source = :classification_source")
+            params["classification_source"] = filters.classification_source
 
         if filters.file_type is not None:
             filter_clauses.append("AND d.file_type = :file_type")

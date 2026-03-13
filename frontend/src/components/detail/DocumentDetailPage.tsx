@@ -12,10 +12,7 @@ import { ContentTab } from './ContentTab';
 import { MetadataTab } from './MetadataTab';
 import { NotesTab } from './NotesTab';
 import { useTranslation } from '@/i18n';
-
-interface ShellContext {
-  addRecent: (id: number, title: string) => void;
-}
+import type { ShellContext } from '@/components/layout/AppShell';
 
 type TabId = 'details' | 'content' | 'metadata' | 'notes';
 

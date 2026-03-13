@@ -63,6 +63,8 @@ export function FilterChips({ filters, onFilterChange }: FilterChipsProps) {
     filters.year_max !== undefined ||
     filters.language !== undefined ||
     filters.author !== undefined ||
+    filters.has_text !== undefined ||
+    filters.classification_source !== undefined ||
     filters.file_type !== undefined ||
     filters.processing_status !== undefined ||
     filters.file_size_min !== undefined ||
@@ -149,6 +151,20 @@ export function FilterChips({ filters, onFilterChange }: FilterChipsProps) {
         <Chip
           label={getStatusLabel(filters.processing_status)}
           onRemove={() => removeFilter("processing_status")}
+          removeLabel={t("filter.removeFilter")}
+        />
+      )}
+      {filters.has_text !== undefined && (
+        <Chip
+          label={filters.has_text ? t("chips.hasText") : t("chips.noText")}
+          onRemove={() => removeFilter("has_text")}
+          removeLabel={t("filter.removeFilter")}
+        />
+      )}
+      {filters.classification_source !== undefined && (
+        <Chip
+          label={t(`chips.cls.${filters.classification_source}` as TranslationKey)}
+          onRemove={() => removeFilter("classification_source")}
           removeLabel={t("filter.removeFilter")}
         />
       )}

@@ -1,6 +1,5 @@
-import { useState, useEffect, useCallback } from 'react';
-import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { useSearch } from '@/hooks/useSearch';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useParams, useSearchParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { excludeBatch, classifyBatch, getExportUrl, listSavedSearches } from '@/lib/api';
 import { useSettings } from '@/hooks/useSettings';
 import { FilterBar } from '@/components/filters/FilterBar';
@@ -9,35 +8,30 @@ import { BulkEditor } from '@/components/BulkEditor';
 import { ResultsList } from '@/components/ResultsList';
 import { DocumentToolbar } from '@/components/DocumentToolbar';
 import type { SearchFilters, AppSettings } from '@/lib/types';
+import type { ShellContext } from '@/components/layout/AppShell';
 
-type SortOption = AppSettings['default_sort'];
 type ViewMode = AppSettings['view_mode'];
 
 export function DocumentsPage() {
-  const { settings } = useSettings();
+  const { settings, loaded: settingsLoaded } = useSettings();
   const { viewId } = useParams<{ viewId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { search } = useOutletContext<ShellContext>();
 
-  const [sort, setSort] = useState<SortOption>(settings.default_sort);
+  const viewModeInitialized = useRef(false);
   const [viewMode, setViewMode] = useState<ViewMode>(settings.view_mode);
 
-  // Sync sort/viewMode when settings load
+  // Sync viewMode once when settings finish loading from API
   useEffect(() => {
-    setSort(settings.default_sort);
-  }, [settings.default_sort]);
-
-  useEffect(() => {
-    setViewMode(settings.view_mode);
-  }, [settings.view_mode]);
-
-  const search = useSearch({
-    resultsPerPage: settings.results_per_page,
-    defaultSort: sort,
-  });
+    if (settingsLoaded && !viewModeInitialized.current) {
+      viewModeInitialized.current = true;
+      setViewMode(settings.view_mode);
+    }
+  }, [settingsLoaded, settings.view_mode]);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
-  // On mount: read URL params and initialize filters (only once)
+  // On mount: reset search state and apply URL params (only once)
   useEffect(() => {
     const q = searchParams.get('q');
     const category = searchParams.get('category');
@@ -46,10 +40,13 @@ export function DocumentsPage() {
     const year_max = searchParams.get('year_max');
     const file_type = searchParams.get('file_type');
     const processing_status = searchParams.get('processing_status');
+    const has_text = searchParams.get('has_text');
+    const classification_source = searchParams.get('classification_source');
     const created_after = searchParams.get('created_after');
     const created_before = searchParams.get('created_before');
 
-    if (q) search.setQuery(q);
+    // Always reset to URL state (shared search persists across navigations)
+    search.setQuery(q ?? '');
 
     const initialFilters: SearchFilters = {};
     if (category) initialFilters.category = category;
@@ -58,16 +55,20 @@ export function DocumentsPage() {
     if (year_max) initialFilters.year_max = Number(year_max);
     if (file_type) initialFilters.file_type = file_type;
     if (processing_status) initialFilters.processing_status = processing_status;
+    if (has_text !== null) initialFilters.has_text = has_text === 'true';
+    if (classification_source) initialFilters.classification_source = classification_source;
     if (created_after) initialFilters.created_after = created_after;
     if (created_before) initialFilters.created_before = created_before;
 
-    if (Object.keys(initialFilters).length > 0) {
-      search.setFilters(initialFilters);
-    }
+    search.setFilters(initialFilters);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // On filter/query change: update URL params
+  // Use ref for setSearchParams to avoid re-triggering on reference change (React Router v7)
+  const setSearchParamsRef = useRef(setSearchParams);
+  setSearchParamsRef.current = setSearchParams;
+
   useEffect(() => {
     const params = new URLSearchParams();
     if (search.query) params.set('q', search.query);
@@ -77,10 +78,12 @@ export function DocumentsPage() {
     if (search.filters.year_max !== undefined) params.set('year_max', String(search.filters.year_max));
     if (search.filters.file_type) params.set('file_type', search.filters.file_type);
     if (search.filters.processing_status) params.set('processing_status', search.filters.processing_status);
+    if (search.filters.has_text !== undefined) params.set('has_text', String(search.filters.has_text));
+    if (search.filters.classification_source) params.set('classification_source', search.filters.classification_source);
     if (search.filters.created_after) params.set('created_after', search.filters.created_after);
     if (search.filters.created_before) params.set('created_before', search.filters.created_before);
-    setSearchParams(params, { replace: true });
-  }, [search.filters, search.query, setSearchParams]);
+    setSearchParamsRef.current(params, { replace: true });
+  }, [search.filters, search.query]);
 
   // Load saved view when navigating to /view/:viewId
   useEffect(() => {
@@ -137,7 +140,7 @@ export function DocumentsPage() {
       setSelectedIds(new Set());
       search.refresh();
     } catch { /* ignore */ }
-  }, [selectedIds, search]);
+  }, [selectedIds, search.refresh]);
 
   const handleClassifySelected = useCallback(async () => {
     try {
@@ -158,7 +161,7 @@ export function DocumentsPage() {
     } else {
       search.setFilters({ ...search.filters, [type]: value });
     }
-  }, [search]);
+  }, [search.filters, search.setFilters]);
 
   // Clear selection when search results change
   useEffect(() => {
@@ -199,15 +202,15 @@ export function DocumentsPage() {
         <DocumentToolbar
           viewMode={viewMode}
           onViewModeChange={setViewMode}
-          sort={sort}
-          onSortChange={setSort}
+          sort={search.sort}
+          onSortChange={search.setSort}
         />
         <ResultsList
           documents={search.results?.documents}
           total={search.results?.total}
           loading={search.loading}
           offset={search.offset}
-          onLoadMore={() => search.setOffset()}
+          onLoadMore={search.loadMore}
           onSelect={handleDocSelect}
           viewMode={viewMode}
           selectedIds={selectedIds}

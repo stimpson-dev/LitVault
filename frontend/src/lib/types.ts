@@ -28,6 +28,8 @@ export interface SearchFilters {
   year_max?: number;
   language?: string;
   author?: string;
+  has_text?: boolean;
+  classification_source?: string;
   file_type?: string;
   processing_status?: string;
   file_size_min?: number;

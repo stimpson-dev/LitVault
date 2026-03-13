@@ -11,11 +11,17 @@ export function useSearch(options: UseSearchOptions = {}) {
   const { resultsPerPage = 25, defaultSort = 'date_desc' } = options;
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
+  const [sort, setSort] = useState<AppSettings['default_sort']>(defaultSort);
   const [documents, setDocuments] = useState<SearchDocument[]>([]);
   const [meta, setMeta] = useState<{ total: number; facets: SearchResponse['facets'] } | null>(null);
   const [loading, setLoading] = useState(false);
   const [offset, setOffset] = useState(0);
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync sort when settings change
+  useEffect(() => {
+    setSort(defaultSort);
+  }, [defaultSort]);
 
   // Reset and fetch fresh when query/filters/limit/sort change
   useEffect(() => {
@@ -26,7 +32,7 @@ export function useSearch(options: UseSearchOptions = {}) {
 
     debounceTimer.current = setTimeout(() => {
       setLoading(true);
-      searchDocuments(query, filters, 0, resultsPerPage, defaultSort)
+      searchDocuments(query, filters, 0, resultsPerPage, sort)
         .then((data) => {
           setDocuments(data.documents);
           setMeta({ total: data.total, facets: data.facets });
@@ -41,13 +47,13 @@ export function useSearch(options: UseSearchOptions = {}) {
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [query, filters, resultsPerPage, defaultSort]);
+  }, [query, filters, resultsPerPage, sort]);
 
   // Load more: append results
   const loadMore = useCallback(() => {
     const nextOffset = documents.length;
     setLoading(true);
-    searchDocuments(query, filters, nextOffset, resultsPerPage, defaultSort)
+    searchDocuments(query, filters, nextOffset, resultsPerPage, sort)
       .then((data) => {
         setDocuments((prev) => [...prev, ...data.documents]);
         setMeta({ total: data.total, facets: data.facets });
@@ -55,14 +61,14 @@ export function useSearch(options: UseSearchOptions = {}) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [query, filters, documents.length, resultsPerPage, defaultSort]);
+  }, [query, filters, documents.length, resultsPerPage, sort]);
 
   // Force re-fetch current search from scratch
   const refresh = useCallback(() => {
     setOffset(0);
     setDocuments([]);
     setLoading(true);
-    searchDocuments(query, filters, 0, resultsPerPage, defaultSort)
+    searchDocuments(query, filters, 0, resultsPerPage, sort)
       .then((data) => {
         setDocuments(data.documents);
         setMeta({ total: data.total, facets: data.facets });
@@ -72,11 +78,11 @@ export function useSearch(options: UseSearchOptions = {}) {
         setMeta(null);
       })
       .finally(() => setLoading(false));
-  }, [query, filters, resultsPerPage, defaultSort]);
+  }, [query, filters, resultsPerPage, sort]);
 
   const results: SearchResponse | null = meta
     ? { documents, total: meta.total, facets: meta.facets, query }
     : null;
 
-  return { query, setQuery, filters, setFilters, results, loading, offset, setOffset: loadMore, refresh };
+  return { query, setQuery, filters, setFilters, sort, setSort, results, loading, offset, loadMore, refresh };
 }

@@ -13,6 +13,11 @@ import { StatsPanel } from '@/components/StatsPanel';
 
 type DropdownPanel = 'jobs' | 'searches' | 'stats' | null;
 
+export interface ShellContext {
+  addRecent: (id: number, title: string) => void;
+  search: ReturnType<typeof useSearch>;
+}
+
 export function AppShell() {
   const { settings, refresh: refreshSettings } = useSettings();
   const search = useSearch({
@@ -121,7 +126,7 @@ export function AppShell() {
 
           {/* Page content via router */}
           <div className="flex-1 overflow-hidden">
-            <Outlet context={useMemo(() => ({ addRecent }), [addRecent])} />
+            <Outlet context={useMemo(() => ({ addRecent, search }), [addRecent, search])} />
           </div>
         </div>
       </div>

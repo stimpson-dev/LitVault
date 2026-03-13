@@ -6,6 +6,7 @@ import unicodedata
 from pathlib import Path
 
 import fitz  # PyMuPDF
+fitz.TOOLS.mupdf_display_errors(False)  # suppress C-level ICC profile warnings on stderr
 import pymupdf4llm
 from PIL import Image
 
