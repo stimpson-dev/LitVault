@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { FileText, File } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { FavoriteButton } from '@/components/FavoriteButton';
-import type { SearchDocument } from '@/lib/types';
+import type { SearchDocument, SearchFilters } from '@/lib/types';
+
+type FilterAddHandler = (type: keyof SearchFilters, value: string) => void;
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   paper: 'Paper',
@@ -69,9 +71,10 @@ interface LargeCardProps {
   onSelect: (id: number) => void;
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
+  onFilterAdd?: FilterAddHandler;
 }
 
-export function LargeCard({ doc, onSelect, selected, onToggleSelect }: LargeCardProps) {
+export function LargeCard({ doc, onSelect, selected, onToggleSelect, onFilterAdd }: LargeCardProps) {
   const displayTitle = getDisplayTitle(doc);
   const [imgError, setImgError] = useState(false);
   const snippet = doc.text_snippet || doc.summary;
@@ -126,7 +129,10 @@ export function LargeCard({ doc, onSelect, selected, onToggleSelect }: LargeCard
         {/* Header: badge + title */}
         <div className="flex items-start gap-2 flex-wrap">
           {doc.doc_type && (
-            <Badge className={`text-xs border shrink-0 ${getDocTypeBadgeClass(doc.doc_type)}`}>
+            <Badge
+              className={`text-xs border shrink-0 ${getDocTypeBadgeClass(doc.doc_type)}${onFilterAdd ? ' cursor-pointer hover:brightness-125 transition' : ''}`}
+              onClick={(e) => { e.stopPropagation(); onFilterAdd?.('doc_type', doc.doc_type!); }}
+            >
               {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
             </Badge>
           )}
@@ -145,7 +151,14 @@ export function LargeCard({ doc, onSelect, selected, onToggleSelect }: LargeCard
           <p className="text-sm text-zinc-400 truncate">
             {doc.authors && <span>{doc.authors}</span>}
             {doc.authors && doc.year && <span> · </span>}
-            {doc.year && <span>{doc.year}</span>}
+            {doc.year && (
+              <span
+                onClick={(e) => { e.stopPropagation(); onFilterAdd?.('year_min', String(doc.year)); }}
+                className={onFilterAdd ? 'cursor-pointer hover:text-zinc-200 transition' : ''}
+              >
+                {doc.year}
+              </span>
+            )}
           </p>
         )}
 
@@ -159,7 +172,12 @@ export function LargeCard({ doc, onSelect, selected, onToggleSelect }: LargeCard
 
         {/* Footer: file info + confidence */}
         <div className="mt-auto flex items-center gap-3 pt-1">
-          <span className="text-xs text-zinc-500 uppercase">{doc.file_type}</span>
+          <span
+            onClick={(e) => { e.stopPropagation(); onFilterAdd?.('file_type', doc.file_type); }}
+            className={`text-xs text-zinc-500 uppercase${onFilterAdd ? ' cursor-pointer hover:text-zinc-300 transition' : ''}`}
+          >
+            {doc.file_type}
+          </span>
           {doc.file_size != null && (
             <span className="text-xs text-zinc-500">{formatFileSize(doc.file_size)}</span>
           )}

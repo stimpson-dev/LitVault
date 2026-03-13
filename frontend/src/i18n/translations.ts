@@ -237,6 +237,13 @@ const de = {
   "sort.dateAsc": "Älteste zuerst",
   "sort.nameAsc": "Name A-Z",
   "sort.nameDesc": "Name Z-A",
+
+  // Bulk editor
+  "bulk.exclude": "Entfernen",
+  "bulk.classify": "KI-Analyse",
+  "bulk.export": "Exportieren",
+  "bulk.of": "von",
+  "bulk.documents": "Dokumenten",
 } as const;
 
 const en: Record<keyof typeof de, string> = {
@@ -478,6 +485,13 @@ const en: Record<keyof typeof de, string> = {
   "sort.dateAsc": "Oldest first",
   "sort.nameAsc": "Name A-Z",
   "sort.nameDesc": "Name Z-A",
+
+  // Bulk editor
+  "bulk.exclude": "Exclude",
+  "bulk.classify": "AI Classify",
+  "bulk.export": "Export",
+  "bulk.of": "of",
+  "bulk.documents": "documents",
 };
 
 export type TranslationKey = keyof typeof de;

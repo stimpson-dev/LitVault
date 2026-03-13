@@ -1,7 +1,9 @@
 import { FileText, FileSpreadsheet, Presentation } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { FavoriteButton } from '@/components/FavoriteButton';
-import type { SearchDocument } from '@/lib/types';
+import type { SearchDocument, SearchFilters } from '@/lib/types';
+
+type FilterAddHandler = (type: keyof SearchFilters, value: string) => void;
 
 const DOC_TYPE_LABELS: Record<string, string> = {
   paper: 'Paper',
@@ -26,6 +28,7 @@ interface ResultRowProps {
   onSelect: (id: number) => void;
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
+  onFilterAdd?: FilterAddHandler;
 }
 
 function getFileIcon(fileType: string) {
@@ -61,7 +64,7 @@ function getDisplayTitle(doc: SearchDocument): string {
   return parts[parts.length - 1] ?? doc.file_path;
 }
 
-export function ResultRow({ doc, onSelect, selected, onToggleSelect }: ResultRowProps) {
+export function ResultRow({ doc, onSelect, selected, onToggleSelect, onFilterAdd }: ResultRowProps) {
   const displayTitle = getDisplayTitle(doc);
 
   return (
@@ -82,7 +85,12 @@ export function ResultRow({ doc, onSelect, selected, onToggleSelect }: ResultRow
         />
       )}
       <div className="flex items-start gap-3 min-w-0 flex-1">
-        {getFileIcon(doc.file_type)}
+        <span
+          onClick={(e) => { e.stopPropagation(); onFilterAdd?.('file_type', doc.file_type); }}
+          className={onFilterAdd ? 'cursor-pointer hover:brightness-125 transition' : ''}
+        >
+          {getFileIcon(doc.file_type)}
+        </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             {doc.title_snippet ? (
@@ -95,7 +103,8 @@ export function ResultRow({ doc, onSelect, selected, onToggleSelect }: ResultRow
             )}
             {doc.doc_type && (
               <Badge
-                className={`text-xs border ${getDocTypeBadgeClass(doc.doc_type)}`}
+                className={`text-xs border ${getDocTypeBadgeClass(doc.doc_type)}${onFilterAdd ? ' cursor-pointer hover:brightness-125 transition' : ''}`}
+                onClick={(e) => { e.stopPropagation(); onFilterAdd?.('doc_type', doc.doc_type!); }}
               >
                 {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
               </Badge>
@@ -105,7 +114,14 @@ export function ResultRow({ doc, onSelect, selected, onToggleSelect }: ResultRow
             <p className="mt-0.5 text-xs text-zinc-400">
               {doc.authors && <span>{doc.authors}</span>}
               {doc.authors && doc.year && <span> · </span>}
-              {doc.year && <span>{doc.year}</span>}
+              {doc.year && (
+                <span
+                  onClick={(e) => { e.stopPropagation(); onFilterAdd?.('year_min', String(doc.year)); }}
+                  className={onFilterAdd ? 'cursor-pointer hover:text-zinc-200 transition' : ''}
+                >
+                  {doc.year}
+                </span>
+              )}
             </p>
           )}
           {doc.text_snippet && (

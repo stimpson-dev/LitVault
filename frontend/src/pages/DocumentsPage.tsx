@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useSearch } from '@/hooks/useSearch';
-import { excludeBatch, listSavedSearches } from '@/lib/api';
+import { excludeBatch, classifyBatch, getExportUrl, listSavedSearches } from '@/lib/api';
 import { useSettings } from '@/hooks/useSettings';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { FilterChips } from '@/components/FilterChips';
+import { BulkEditor } from '@/components/BulkEditor';
 import { ResultsList } from '@/components/ResultsList';
 import { DocumentDetail } from '@/components/DocumentDetail';
 import { DocumentToolbar } from '@/components/DocumentToolbar';
@@ -131,11 +132,6 @@ export function DocumentsPage() {
     });
   }, []);
 
-  const handleSelectAll = useCallback(() => {
-    if (!search.results?.documents) return;
-    setSelectedIds(new Set(search.results.documents.map((d) => d.id)));
-  }, [search.results?.documents]);
-
   const handleDeselectAll = useCallback(() => {
     setSelectedIds(new Set());
   }, []);
@@ -149,6 +145,27 @@ export function DocumentsPage() {
       search.refresh();
     } catch { /* ignore */ }
   }, [selectedIds, search]);
+
+  const handleClassifySelected = useCallback(async () => {
+    try {
+      await classifyBatch();
+    } catch { /* ignore */ }
+  }, []);
+
+  const handleExportSelected = useCallback(() => {
+    // TODO: future API will support exporting specific IDs; for now exports all matching the current search
+    const url = getExportUrl(search.query, search.filters);
+    window.open(url, '_blank');
+  }, [search.query, search.filters]);
+
+  const handleFilterAdd = useCallback((type: keyof SearchFilters, value: string) => {
+    if (type === 'year_min' || type === 'year_max') {
+      const year = Number(value);
+      search.setFilters({ ...search.filters, year_min: year, year_max: year });
+    } else {
+      search.setFilters({ ...search.filters, [type]: value });
+    }
+  }, [search]);
 
   // Clear selection when search results change
   useEffect(() => {
@@ -168,11 +185,22 @@ export function DocumentsPage() {
     <div className="flex flex-1 overflow-hidden h-full">
       {/* Center: filter bar + results */}
       <main className="flex-1 overflow-y-auto">
-        <FilterBar
-          facets={search.results?.facets}
-          filters={search.filters}
-          onFilterChange={search.setFilters}
-        />
+        {selectedIds.size > 0 ? (
+          <BulkEditor
+            selectedCount={selectedIds.size}
+            totalCount={search.results?.total ?? 0}
+            onDeselectAll={handleDeselectAll}
+            onExcludeSelected={handleExcludeSelected}
+            onClassifySelected={handleClassifySelected}
+            onExportSelected={handleExportSelected}
+          />
+        ) : (
+          <FilterBar
+            facets={search.results?.facets}
+            filters={search.filters}
+            onFilterChange={search.setFilters}
+          />
+        )}
         <FilterChips
           filters={search.filters}
           onFilterChange={search.setFilters}
@@ -182,10 +210,6 @@ export function DocumentsPage() {
           onViewModeChange={setViewMode}
           sort={sort}
           onSortChange={setSort}
-          selectedCount={selectedIds.size}
-          onSelectAll={handleSelectAll}
-          onDeselectAll={handleDeselectAll}
-          onExcludeSelected={handleExcludeSelected}
         />
         <ResultsList
           documents={search.results?.documents}
@@ -197,6 +221,7 @@ export function DocumentsPage() {
           viewMode={viewMode}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
+          onFilterAdd={handleFilterAdd}
         />
       </main>
 

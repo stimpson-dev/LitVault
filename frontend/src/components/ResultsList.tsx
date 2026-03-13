@@ -2,8 +2,10 @@ import { Loader2 } from 'lucide-react';
 import { ResultRow } from './ResultRow';
 import { GridCard } from './GridCard';
 import { LargeCard } from './LargeCard';
-import type { SearchDocument, AppSettings } from '@/lib/types';
+import type { SearchDocument, AppSettings, SearchFilters } from '@/lib/types';
 import { useTranslation } from '@/i18n';
+
+type FilterAddHandler = (type: keyof SearchFilters, value: string) => void;
 
 interface ResultsListProps {
   documents?: SearchDocument[];
@@ -15,9 +17,10 @@ interface ResultsListProps {
   viewMode?: AppSettings['view_mode'];
   selectedIds?: Set<number>;
   onToggleSelect?: (id: number) => void;
+  onFilterAdd?: FilterAddHandler;
 }
 
-export function ResultsList({ documents, total, loading, offset: _offset, onLoadMore, onSelect, viewMode = 'table', selectedIds, onToggleSelect }: ResultsListProps) {
+export function ResultsList({ documents, total, loading, offset: _offset, onLoadMore, onSelect, viewMode = 'table', selectedIds, onToggleSelect, onFilterAdd }: ResultsListProps) {
   const { t } = useTranslation();
 
   if (loading && (!documents || documents.length === 0)) {
@@ -56,7 +59,7 @@ export function ResultsList({ documents, total, loading, offset: _offset, onLoad
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-2 xl:grid-cols-3 gap-3 p-4">
           {documents.map((doc) => (
-            <GridCard key={doc.id} doc={doc} onSelect={onSelect} selected={selectedIds?.has(doc.id)} onToggleSelect={onToggleSelect} />
+            <GridCard key={doc.id} doc={doc} onSelect={onSelect} selected={selectedIds?.has(doc.id)} onToggleSelect={onToggleSelect} onFilterAdd={onFilterAdd} />
           ))}
         </div>
         {loadMoreButton}
@@ -68,7 +71,7 @@ export function ResultsList({ documents, total, loading, offset: _offset, onLoad
     return (
       <div className="flex flex-col gap-3 p-4">
         {documents.map((doc) => (
-          <LargeCard key={doc.id} doc={doc} onSelect={onSelect} selected={selectedIds?.has(doc.id)} onToggleSelect={onToggleSelect} />
+          <LargeCard key={doc.id} doc={doc} onSelect={onSelect} selected={selectedIds?.has(doc.id)} onToggleSelect={onToggleSelect} onFilterAdd={onFilterAdd} />
         ))}
         {loadMoreButton}
       </div>
@@ -79,7 +82,7 @@ export function ResultsList({ documents, total, loading, offset: _offset, onLoad
   return (
     <div className="flex flex-col">
       {documents.map((doc) => (
-        <ResultRow key={doc.id} doc={doc} onSelect={onSelect} selected={selectedIds?.has(doc.id)} onToggleSelect={onToggleSelect} />
+        <ResultRow key={doc.id} doc={doc} onSelect={onSelect} selected={selectedIds?.has(doc.id)} onToggleSelect={onToggleSelect} onFilterAdd={onFilterAdd} />
       ))}
       {loadMoreButton}
     </div>
