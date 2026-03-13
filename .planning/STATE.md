@@ -1,13 +1,15 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 9 (App Shell + Sidebar Redesign) — PLANNED
-- **Next Step**: Execute Phase 9 (start with 09-01: Router + AppShell + Sidebar)
-- **Milestone**: M3 COMPLETE, M4 COMPLETE, M5 PLANNED (Phases 9-12)
+- **Phase**: 9 (App Shell + Sidebar Redesign) — COMPLETE
+- **Next Step**: Execute Phase 10 (Document List Upgrade) — Wave 1: 10-01 + 10-02 in parallel
+- **Milestone**: M3 COMPLETE, M4 COMPLETE, M5 IN PROGRESS (Phase 9 done, Phases 10-12 remaining)
 
 ## Milestone M5: UI Redesign (Phases 9-12)
 Inspired by paperless-ngx patterns. Four phases:
-- Phase 9: App Shell + Sidebar (routing, slim sidebar, saved views nav, recent docs)
+- Phase 9: App Shell + Sidebar — COMPLETE
+  - 09-01: Router + AppShell + AppNavbar + AppSidebar (slim mode, mobile drawer)
+  - 09-02: SavedViewNav + RecentDocuments + collapsible sections
 - Phase 10: Document List (3 display modes, horizontal filter bar, bulk editor, click-to-filter)
 - Phase 11: Document Detail (split-pane + PDF viewer, keyboard shortcuts, Save & Next)
 - Phase 12: Dashboard + Polish (stats widgets, drag-and-drop, skeleton loading, enriched toasts)
