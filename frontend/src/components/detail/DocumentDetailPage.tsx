@@ -60,7 +60,8 @@ export function DocumentDetailPage() {
         doc.title || doc.file_path.split(/[\\/]/).pop() || `#${doc.id}`,
       );
     }
-  }, [doc, context]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc]);
 
   const handleSave = useCallback(() => {
     if (document.activeElement instanceof HTMLElement) {

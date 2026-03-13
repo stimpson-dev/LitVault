@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useSettings } from '@/hooks/useSettings';
 import { useSearch } from '@/hooks/useSearch';
@@ -121,7 +121,7 @@ export function AppShell() {
 
           {/* Page content via router */}
           <div className="flex-1 overflow-hidden">
-            <Outlet context={{ addRecent }} />
+            <Outlet context={useMemo(() => ({ addRecent }), [addRecent])} />
           </div>
         </div>
       </div>
