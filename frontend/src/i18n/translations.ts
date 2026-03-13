@@ -61,6 +61,12 @@ const de = {
   "toolbar.exportTitle": "Als CSV exportieren",
   "toolbar.exportFailed": "Export fehlgeschlagen",
   "toolbar.settings": "Einstellungen",
+  "toolbar.navigation": "Navigation",
+  "toolbar.documents": "Dokumente",
+  "toolbar.manage": "Verwalten",
+  "sidebar.noSavedSearches": "Keine gespeicherten Suchen",
+  "sidebar.collapse": "Einklappen",
+  "sidebar.expand": "Ausklappen",
 
   // Settings
   "settings.title": "Einstellungen",
@@ -267,6 +273,12 @@ const en: Record<keyof typeof de, string> = {
   "toolbar.exportTitle": "Export as CSV",
   "toolbar.exportFailed": "Export failed",
   "toolbar.settings": "Settings",
+  "toolbar.navigation": "Navigation",
+  "toolbar.documents": "Documents",
+  "toolbar.manage": "Manage",
+  "sidebar.noSavedSearches": "No saved searches",
+  "sidebar.collapse": "Collapse",
+  "sidebar.expand": "Expand",
 
   // Settings
   "settings.title": "Settings",

@@ -144,6 +144,101 @@
 
 ---
 
+---
+
+## Phase 9: App Shell + Sidebar Redesign
+**Goal**: Persistent app shell with collapsible sidebar, client-side routing, saved views as first-class navigation.
+
+**Success Criteria**:
+- [ ] App renders with persistent sidebar + top navbar surviving page navigation
+- [ ] Sidebar collapses to 50px icon rail (slim mode) with smooth animation
+- [ ] Client-side routing: /, /dashboard, /documents/:id, /view/:id routes
+- [ ] Saved searches appear as clickable sidebar nav items
+- [ ] Recently opened documents tracked in sidebar
+- [ ] All sidebar sections collapsible with persisted state
+- [ ] Mobile: sidebar as full-width drawer
+
+**Plans**:
+- 09-01: Router setup + AppShell + AppNavbar + AppSidebar (slim mode)
+- 09-02: Saved views in sidebar + recently opened docs + collapsible sections
+
+**Waves**:
+- Wave 1: 09-01 (foundation)
+- Wave 2: 09-02 (depends on 09-01)
+
+---
+
+## Phase 10: Document List Upgrade
+**Goal**: Three display modes, horizontal filter bar with include/exclude logic, bulk editor, click-to-filter.
+
+**Success Criteria**:
+- [ ] 3 display modes: table / small cards / large cards with toolbar toggle
+- [ ] Sticky horizontal filter bar with filterable dropdown popovers
+- [ ] Each filter dropdown: searchable list, document counts, include/exclude/none toggle
+- [ ] Filter state reflected in URL query params (bookmarkable)
+- [ ] Bulk editor bar swaps with filter bar when documents selected
+- [ ] Click-to-filter on all metadata badges (doc_type, tag, year, author, file_type)
+- [ ] Sort controls in toolbar (field + direction)
+- [ ] Hover-reveal card actions on all card types
+- [ ] Search relevance score visualization bar
+
+**Plans**:
+- 10-01: DocumentToolbar + 3 display modes + LargeCard + hover actions + relevance bar
+- 10-02: FilterBar + FilterDropdown (include/exclude) + URL sync + replace FilterSidebar
+- 10-03: BulkEditor bar + click-to-filter on metadata badges
+
+**Waves**:
+- Wave 1: 10-01, 10-02 (independent)
+- Wave 2: 10-03 (depends on 10-01 + 10-02)
+
+---
+
+## Phase 11: Document Detail Redesign
+**Goal**: Full-page split-pane detail with tabbed form + inline PDF viewer, keyboard shortcuts, navigation flow.
+
+**Success Criteria**:
+- [ ] /documents/:id renders split-pane: left tabs (40%) + right PDF viewer (60%)
+- [ ] Tabs: Details (inline edit), Content (full text), Metadata, Notes
+- [ ] PDF viewer with page navigation and zoom
+- [ ] Keyboard shortcuts: Ctrl+S save, Escape close, Ctrl+Arrow navigate
+- [ ] Save & Next / Save & Close navigation flow
+- [ ] "More like this" button searches similar documents
+- [ ] Opens tracked in sidebar "Recently Opened"
+- [ ] Mobile: PDF viewer becomes a tab
+
+**Plans**:
+- 11-01: DocumentDetailPage split-pane + tabs + PDF viewer
+- 11-02: Keyboard shortcuts + Save & Next + More like this + recent docs integration
+
+**Waves**:
+- Wave 1: 11-01 (foundation)
+- Wave 2: 11-02 (depends on 11-01)
+
+---
+
+## Phase 12: Dashboard + Polish
+**Goal**: Dashboard with draggable widgets, shared UI components, skeleton loading, enriched toasts.
+
+**Success Criteria**:
+- [ ] /dashboard renders stats widget + draggable saved view widgets
+- [ ] Stats: total docs, status breakdown, file type stacked bar, needs_ai/ocr badges
+- [ ] Saved view widgets show top 5 documents per view
+- [ ] Drag-and-drop reorders widgets (persisted)
+- [ ] PageHeader component on all pages
+- [ ] Skeleton loading replaces spinners throughout
+- [ ] Toast notifications with collapsible error details
+- [ ] Consistent styling/spacing across all pages
+
+**Plans**:
+- 12-01: DashboardPage + StatsWidget + FileTypeBar + SavedViewWidget + drag-and-drop
+- 12-02: PageHeader + Skeleton + enriched Toast + WidgetFrame + final polish
+
+**Waves**:
+- Wave 1: 12-01 (dashboard core)
+- Wave 2: 12-02 (polish, depends on all prior phases)
+
+---
+
 ## Milestones
 
 | Milestone | Phases | Beschreibung |
@@ -152,3 +247,4 @@
 | **M2: Intelligence** | 4-5 | AI-Klassifikation + Suche funktionieren end-to-end |
 | **M3: Ship v1** | 6-7 | Frontend komplett, polish, ready to use |
 | **M4: Improvements** | 8 | Suche, Filter, Metadaten, Re-Scan |
+| **M5: UI Redesign** | 9-12 | Paperless-ngx-inspired redesign: app shell, filter bar, split detail, dashboard |

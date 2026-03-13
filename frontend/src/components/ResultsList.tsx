@@ -1,4 +1,4 @@
-import { Loader2, Trash2, X, CheckSquare, Square } from 'lucide-react';
+import { Loader2, Trash2, X, CheckSquare } from 'lucide-react';
 import { ResultRow } from './ResultRow';
 import { GridCard } from './GridCard';
 import type { SearchDocument, AppSettings } from '@/lib/types';

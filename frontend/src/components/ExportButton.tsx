@@ -21,7 +21,7 @@ export function ExportButton({ query, filters, disabled }: ExportButtonProps) {
     if ('showSaveFilePicker' in window) {
       try {
         setSaving(true);
-        const handle = await window.showSaveFilePicker({
+        const handle = await (window as any).showSaveFilePicker({
           suggestedName: 'litvault_export.csv',
           types: [{ description: 'CSV', accept: { 'text/csv': ['.csv'] } }],
         });
