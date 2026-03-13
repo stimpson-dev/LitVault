@@ -35,7 +35,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     start_page: 'search',
     results_per_page: 25,
     default_sort: 'date_desc',
-    view_mode: 'list',
+    view_mode: 'table',
     show_favorites_sidebar: true,
     watch_folders: [],
     poll_interval_seconds: 30,
@@ -198,7 +198,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                 <div>
                   <label className="block text-sm text-zinc-400 mb-1">{t('settings.viewMode')}</label>
                   <div className="flex gap-2">
-                    {(['list', 'grid'] as const).map((mode) => (
+                    {(['table', 'grid', 'large'] as const).map((mode) => (
                       <button
                         key={mode}
                         type="button"
@@ -209,7 +209,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                             : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
                         }`}
                       >
-                        {mode === 'list' ? t('settings.viewList') : t('settings.viewGrid')}
+                        {mode === 'table' ? t('settings.viewList') : mode === 'grid' ? t('settings.viewGrid') : t('toolbar.displayLarge')}
                       </button>
                     ))}
                   </div>

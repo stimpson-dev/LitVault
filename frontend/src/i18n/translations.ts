@@ -211,6 +211,17 @@ const de = {
   "chips.size": "Größe",
   "chips.yearFrom": "ab",
   "chips.yearTo": "bis",
+
+  // Document toolbar
+  "toolbar.sortBy": "Sortieren nach",
+  "toolbar.displayTable": "Tabelle",
+  "toolbar.displayGrid": "Karten",
+  "toolbar.displayLarge": "Große Karten",
+  "sort.relevance": "Relevanz",
+  "sort.dateDesc": "Neueste zuerst",
+  "sort.dateAsc": "Älteste zuerst",
+  "sort.nameAsc": "Name A-Z",
+  "sort.nameDesc": "Name Z-A",
 } as const;
 
 const en: Record<keyof typeof de, string> = {
@@ -426,6 +437,17 @@ const en: Record<keyof typeof de, string> = {
   "chips.size": "Size",
   "chips.yearFrom": "from",
   "chips.yearTo": "to",
+
+  // Document toolbar
+  "toolbar.sortBy": "Sort by",
+  "toolbar.displayTable": "Table",
+  "toolbar.displayGrid": "Cards",
+  "toolbar.displayLarge": "Large Cards",
+  "sort.relevance": "Relevance",
+  "sort.dateDesc": "Newest first",
+  "sort.dateAsc": "Oldest first",
+  "sort.nameAsc": "Name A-Z",
+  "sort.nameDesc": "Name Z-A",
 };
 
 export type TranslationKey = keyof typeof de;

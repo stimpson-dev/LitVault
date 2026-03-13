@@ -8,7 +8,11 @@ import { FilterChips } from '@/components/FilterChips';
 import { FavoritesSidebar } from '@/components/FavoritesSidebar';
 import { ResultsList } from '@/components/ResultsList';
 import { DocumentDetail } from '@/components/DocumentDetail';
-import type { SearchFilters } from '@/lib/types';
+import { DocumentToolbar } from '@/components/DocumentToolbar';
+import type { SearchFilters, AppSettings } from '@/lib/types';
+
+type SortOption = AppSettings['default_sort'];
+type ViewMode = AppSettings['view_mode'];
 
 interface ShellContext {
   addRecent: (id: number, title: string) => void;
@@ -19,9 +23,22 @@ export function DocumentsPage() {
   const { viewId } = useParams<{ viewId: string }>();
   const [searchParams] = useSearchParams();
   const context = useOutletContext<ShellContext | undefined>();
+
+  const [sort, setSort] = useState<SortOption>(settings.default_sort);
+  const [viewMode, setViewMode] = useState<ViewMode>(settings.view_mode);
+
+  // Sync sort/viewMode when settings load
+  useEffect(() => {
+    setSort(settings.default_sort);
+  }, [settings.default_sort]);
+
+  useEffect(() => {
+    setViewMode(settings.view_mode);
+  }, [settings.view_mode]);
+
   const search = useSearch({
     resultsPerPage: settings.results_per_page,
-    defaultSort: settings.default_sort,
+    defaultSort: sort,
   });
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -123,6 +140,16 @@ export function DocumentsPage() {
           filters={search.filters}
           onFilterChange={search.setFilters}
         />
+        <DocumentToolbar
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          sort={sort}
+          onSortChange={setSort}
+          selectedCount={selectedIds.size}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
+          onExcludeSelected={handleExcludeSelected}
+        />
         <ResultsList
           documents={search.results?.documents}
           total={search.results?.total}
@@ -130,12 +157,9 @@ export function DocumentsPage() {
           offset={search.offset}
           onLoadMore={() => search.setOffset()}
           onSelect={handleDocSelect}
-          viewMode={settings.view_mode}
+          viewMode={viewMode}
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
-          onSelectAll={handleSelectAll}
-          onDeselectAll={handleDeselectAll}
-          onExcludeSelected={handleExcludeSelected}
         />
       </main>
 

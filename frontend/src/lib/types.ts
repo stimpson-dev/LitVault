@@ -80,7 +80,7 @@ export interface AppSettings {
   // Darstellung
   results_per_page: number;
   default_sort: "date_desc" | "date_asc" | "name_asc" | "name_desc" | "relevance";
-  view_mode: "list" | "grid";
+  view_mode: "table" | "grid" | "large";
   show_favorites_sidebar: boolean;
   // Ordner & Synchronisation
   watch_folders: string[];

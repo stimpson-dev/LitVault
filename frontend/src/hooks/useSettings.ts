@@ -8,7 +8,7 @@ const DEFAULTS: AppSettings = {
   start_page: 'search',
   results_per_page: 25,
   default_sort: 'date_desc',
-  view_mode: 'list',
+  view_mode: 'table',
   show_favorites_sidebar: true,
   watch_folders: [],
   poll_interval_seconds: 30,
