@@ -1,7 +1,8 @@
 import { useNavigate } from 'react-router-dom';
-import { FileText, ExternalLink } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import type { SavedSearch, SearchDocument } from '@/lib/types';
 import { useTranslation } from '@/i18n';
+import { WidgetFrame } from '@/components/ui/WidgetFrame';
 
 interface SavedViewWidgetProps {
   view: SavedSearch;
@@ -43,39 +44,27 @@ export function SavedViewWidget({ view, documents, loading, total }: SavedViewWi
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <FileText size={14} className="text-zinc-400 shrink-0" />
-          <span className="text-sm font-medium text-zinc-200 truncate">{view.name}</span>
-          {!loading && (
-            <span className="ml-1 px-1.5 py-0.5 text-[10px] rounded-full bg-zinc-800 text-zinc-400 tabular-nums shrink-0">
-              {total.toLocaleString('de-DE')}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => navigate(`/view/${view.id}`)}
-          className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors shrink-0 ml-2"
-          title={t('dashboard.viewAll')}
-        >
-          <ExternalLink size={12} />
-          <span>{t('dashboard.viewAll')}</span>
-        </button>
-      </div>
+  const viewAllButton = (
+    <button
+      onClick={() => navigate(`/view/${view.id}`)}
+      className="flex items-center gap-1 text-[11px] text-zinc-500 hover:text-zinc-300 transition-colors shrink-0"
+      title={t('dashboard.viewAll')}
+    >
+      <ExternalLink size={12} />
+      <span>{t('dashboard.viewAll')}</span>
+    </button>
+  );
 
+  return (
+    <WidgetFrame
+      title={view.name}
+      badge={loading ? undefined : total}
+      loading={loading}
+      headerActions={viewAllButton}
+    >
       {/* Document list */}
-      <div className="divide-y divide-zinc-800/60">
-        {loading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="px-4 py-2.5 flex items-center gap-3">
-              <div className="h-4 flex-1 rounded bg-zinc-800/60 animate-pulse" />
-              <div className="h-4 w-10 rounded bg-zinc-800/40 animate-pulse shrink-0" />
-            </div>
-          ))
-        ) : documents.length === 0 ? (
+      <div className="divide-y divide-zinc-800/60 -mx-4 -mb-4">
+        {documents.length === 0 ? (
           <div className="px-4 py-6 text-center">
             <p className="text-xs text-zinc-500">{t('dashboard.noDocuments')}</p>
           </div>
@@ -106,6 +95,6 @@ export function SavedViewWidget({ view, documents, loading, total }: SavedViewWi
           })
         )}
       </div>
-    </div>
+    </WidgetFrame>
   );
 }

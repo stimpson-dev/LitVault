@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { getDashboardStats, classifyBatch, rescanAllErrors, rescanNoText } from '@/lib/api';
 import type { DashboardStats } from '@/lib/types';
 import { useTranslation } from '@/i18n';
+import { WidgetFrame } from '@/components/ui/WidgetFrame';
 
 type Accent = 'neutral' | 'red' | 'emerald' | 'amber' | 'orange';
 
@@ -182,32 +183,25 @@ export function StatsWidget() {
     fetchStats().finally(() => setTimeout(() => setSpinning(false), 600));
   };
 
-  return (
-    <div className="rounded-xl border border-zinc-800 bg-zinc-900/50">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
-        <div className="flex items-center gap-2.5">
-          <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-          <span className="text-sm font-medium text-zinc-200">{t('dashboard.statistics')}</span>
-        </div>
-        <button
-          onClick={handleRefresh}
-          className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
-          title={t('stats.refresh')}
-        >
-          <RefreshCw size={13} className={spinning ? 'animate-spin' : ''} />
-        </button>
-      </div>
+  const refreshButton = (
+    <button
+      onClick={handleRefresh}
+      className="p-1.5 rounded-md text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/60 transition-all"
+      title={t('stats.refresh')}
+    >
+      <RefreshCw size={13} className={spinning ? 'animate-spin' : ''} />
+    </button>
+  );
 
+  return (
+    <WidgetFrame
+      title={t('dashboard.statistics')}
+      loading={loading && !stats}
+      headerActions={refreshButton}
+    >
       {/* Stats grid */}
-      <div className="p-3">
-        {loading && !stats ? (
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-16 rounded-lg bg-zinc-800/40 animate-pulse" />
-            ))}
-          </div>
-        ) : stats ? (
+      <div className="-m-1">
+        {stats ? (
           <div className="grid grid-cols-3 gap-2">
             <StatCard
               label={t('stats.total')}
@@ -256,10 +250,10 @@ export function StatsWidget() {
       </div>
 
       {/* Divider */}
-      <div className="h-px bg-gradient-to-r from-transparent via-zinc-700/50 to-transparent" />
+      <div className="h-px bg-gradient-to-r from-transparent via-zinc-700/50 to-transparent mt-3 -mx-4" />
 
       {/* Action buttons */}
-      <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+      <div className="flex flex-wrap items-center gap-2 pt-3">
         <ActionButton
           label={t('stats.aiBatch')}
           icon={<Sparkles size={11} />}
@@ -285,6 +279,6 @@ export function StatsWidget() {
           accent="orange"
         />
       </div>
-    </div>
+    </WidgetFrame>
   );
 }

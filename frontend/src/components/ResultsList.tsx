@@ -1,7 +1,7 @@
-import { Loader2 } from 'lucide-react';
 import { ResultRow } from './ResultRow';
 import { GridCard } from './GridCard';
 import { LargeCard } from './LargeCard';
+import { Skeleton } from './ui/Skeleton';
 import type { SearchDocument, AppSettings, SearchFilters } from '@/lib/types';
 import { useTranslation } from '@/i18n';
 
@@ -25,8 +25,16 @@ export function ResultsList({ documents, total, loading, offset: _offset, onLoad
 
   if (loading && (!documents || documents.length === 0)) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="size-6 animate-spin text-zinc-400" />
+      <div className="flex flex-col gap-0">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 p-4 border-b border-zinc-800">
+            <Skeleton className="size-4 rounded" />
+            <div className="flex-1 flex flex-col gap-1.5">
+              <Skeleton className="h-4 w-2/3" />
+              <Skeleton className="h-3 w-1/3" />
+            </div>
+          </div>
+        ))}
       </div>
     );
   }

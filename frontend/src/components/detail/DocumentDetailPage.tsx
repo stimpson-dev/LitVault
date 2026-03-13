@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, FileText, FolderOpen, Search, Trash2, RotateCcw } from 'lucide-react';
+import { Skeleton } from '@/components/ui/Skeleton';
 import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { getDocument, openDocument, excludeDocument, restoreDocument } from '@/lib/api';
 import type { DocumentDetail as DocumentDetailType } from '@/lib/types';
@@ -246,7 +247,13 @@ export function DocumentDetailPage() {
           {/* Tab content */}
           <div className="flex-1">
             {loading ? (
-              <div className="p-4 text-xs text-zinc-500">{t('detail.loading')}</div>
+              <div className="p-4 flex flex-col gap-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-4 w-1/3" />
+              </div>
             ) : !doc ? (
               <div className="p-4 text-xs text-zinc-500">{t('detail.notFound')}</div>
             ) : (
