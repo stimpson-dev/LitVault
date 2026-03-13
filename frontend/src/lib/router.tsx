@@ -3,6 +3,7 @@ import { AppShell } from '@/components/layout/AppShell';
 import { DocumentsPage } from '@/pages/DocumentsPage';
 import { DashboardPage } from '@/pages/DashboardPage';
 import { ReviewPage } from '@/pages/ReviewPage';
+import { DocumentDetailPage } from '@/components/detail/DocumentDetailPage';
 
 export const router = createBrowserRouter([
   {
@@ -24,6 +25,10 @@ export const router = createBrowserRouter([
       {
         path: 'review',
         element: <ReviewPage />,
+      },
+      {
+        path: 'documents/:id',
+        element: <DocumentDetailPage />,
       },
     ],
   },

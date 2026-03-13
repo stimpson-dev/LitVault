@@ -236,6 +236,43 @@ async def get_document_thumbnail(
     return FileResponse(path=str(thumb_path), media_type="image/jpeg")
 
 
+@router.get("/documents/{doc_id}/file")
+async def get_document_file(
+    doc_id: int,
+    db: AsyncSession = Depends(get_db),
+) -> FileResponse:
+    """Stream the actual document file for inline viewing."""
+    import os
+
+    result = await db.execute(select(Document).where(Document.id == doc_id))
+    doc = result.scalar_one_or_none()
+    if not doc:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    file_path = doc.file_path
+    if not os.path.isfile(file_path):
+        raise HTTPException(status_code=404, detail="File not found on disk")
+
+    ext = os.path.splitext(file_path)[1].lower()
+    content_types = {
+        ".pdf": "application/pdf",
+        ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        ".txt": "text/plain",
+        ".doc": "application/msword",
+        ".ppt": "application/vnd.ms-powerpoint",
+        ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        ".xls": "application/vnd.ms-excel",
+    }
+    media_type = content_types.get(ext, "application/octet-stream")
+
+    return FileResponse(
+        path=file_path,
+        media_type=media_type,
+        headers={"Content-Disposition": "inline"},
+    )
+
+
 @router.post("/documents/{doc_id}/open-folder")
 async def open_document_folder(
     doc_id: int,

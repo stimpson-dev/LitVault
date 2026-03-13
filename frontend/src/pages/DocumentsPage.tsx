@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useOutletContext, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useSearch } from '@/hooks/useSearch';
 import { excludeBatch, classifyBatch, getExportUrl, listSavedSearches } from '@/lib/api';
 import { useSettings } from '@/hooks/useSettings';
@@ -7,22 +7,17 @@ import { FilterBar } from '@/components/filters/FilterBar';
 import { FilterChips } from '@/components/FilterChips';
 import { BulkEditor } from '@/components/BulkEditor';
 import { ResultsList } from '@/components/ResultsList';
-import { DocumentDetail } from '@/components/DocumentDetail';
 import { DocumentToolbar } from '@/components/DocumentToolbar';
 import type { SearchFilters, AppSettings } from '@/lib/types';
 
 type SortOption = AppSettings['default_sort'];
 type ViewMode = AppSettings['view_mode'];
 
-interface ShellContext {
-  addRecent: (id: number, title: string) => void;
-}
-
 export function DocumentsPage() {
   const { settings } = useSettings();
   const { viewId } = useParams<{ viewId: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
-  const context = useOutletContext<ShellContext | undefined>();
+  const navigate = useNavigate();
 
   const [sort, setSort] = useState<SortOption>(settings.default_sort);
   const [viewMode, setViewMode] = useState<ViewMode>(settings.view_mode);
@@ -40,7 +35,6 @@ export function DocumentsPage() {
     resultsPerPage: settings.results_per_page,
     defaultSort: sort,
   });
-  const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   // On mount: read URL params and initialize filters (only once)
@@ -115,13 +109,13 @@ export function DocumentsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewId]);
 
-  // Handle ?doc=id from sidebar recent docs click
+  // Handle ?doc=id from sidebar recent docs click — navigate to full-page detail
   useEffect(() => {
     const docParam = searchParams.get('doc');
     if (docParam) {
-      setSelectedDocId(Number(docParam));
+      navigate(`/documents/${docParam}`, { replace: true });
     }
-  }, [searchParams]);
+  }, [searchParams, navigate]);
 
   const handleToggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => {
@@ -141,7 +135,6 @@ export function DocumentsPage() {
     try {
       await excludeBatch([...selectedIds]);
       setSelectedIds(new Set());
-      setSelectedDocId(null);
       search.refresh();
     } catch { /* ignore */ }
   }, [selectedIds, search]);
@@ -173,12 +166,7 @@ export function DocumentsPage() {
   }, [search.results?.documents]);
 
   const handleDocSelect = (id: number) => {
-    setSelectedDocId(id);
-    // Add to recent docs in sidebar
-    const doc = search.results?.documents.find((d) => d.id === id);
-    if (doc && context?.addRecent) {
-      context.addRecent(id, doc.title || doc.file_path.split('/').pop() || `#${id}`);
-    }
+    navigate(`/documents/${id}`);
   };
 
   return (
@@ -225,15 +213,6 @@ export function DocumentsPage() {
         />
       </main>
 
-      {/* Right panel: document detail */}
-      {selectedDocId !== null && (
-        <aside className="w-[400px] border-l border-zinc-800 overflow-y-auto shrink-0 hidden xl:block">
-          <DocumentDetail
-            docId={selectedDocId}
-            onClose={() => setSelectedDocId(null)}
-          />
-        </aside>
-      )}
     </div>
   );
 }
