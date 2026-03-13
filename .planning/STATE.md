@@ -1,9 +1,9 @@
 # LitVault Project State
 
 ## Current Position
-- **Phase**: 10 (Document List Upgrade) — COMPLETE
-- **Next Step**: Execute Phase 11 (Document Detail Redesign)
-- **Milestone**: M3 COMPLETE, M4 COMPLETE, M5 IN PROGRESS (Phases 9-10 done, Phases 11-12 remaining)
+- **Phase**: 12 (Dashboard + Polish) — COMPLETE
+- **Next Step**: M5 milestone verification
+- **Milestone**: M3 COMPLETE, M4 COMPLETE, M5 COMPLETE (all 4 phases done)
 
 ## Milestone M5: UI Redesign (Phases 9-12)
 Inspired by paperless-ngx patterns. Four phases:
@@ -14,8 +14,12 @@ Inspired by paperless-ngx patterns. Four phases:
   - 10-01: DocumentToolbar + 3 display modes (table/grid/large) + SortControls
   - 10-02: Horizontal FilterBar with include/exclude dropdowns + URL sync
   - 10-03: BulkEditor bar + click-to-filter on metadata badges
-- Phase 11: Document Detail (split-pane + PDF viewer, keyboard shortcuts, Save & Next)
-- Phase 12: Dashboard + Polish (stats widgets, drag-and-drop, skeleton loading, enriched toasts)
+- Phase 11: Document Detail — COMPLETE
+  - 11-01: Full-page split-pane detail with tabbed form + PDF viewer
+  - 11-02: Keyboard shortcuts (Ctrl+S, Escape, Ctrl+Arrow) + Save & Next + More like this
+- Phase 12: Dashboard + Polish — COMPLETE
+  - 12-01: Dashboard page with StatsWidget, FileTypeWidget, SavedViewWidgets
+  - 12-02: Skeleton + WidgetFrame shared UI components, polish pass
 
 ## Completed
 - [x] PROJECT.md created
