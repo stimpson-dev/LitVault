@@ -3,13 +3,15 @@ import {
   LayoutDashboard,
   FileText,
   ClipboardCheck,
-  Bookmark,
   Settings,
   PanelLeftClose,
   PanelLeft,
 } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import { SidebarSection } from './SidebarSection';
+import { SavedViewNav } from './SavedViewNav';
+import { RecentDocuments } from './RecentDocuments';
+import type { RecentDoc } from '@/hooks/useRecentDocs';
 
 interface AppSidebarProps {
   slim: boolean;
@@ -17,6 +19,10 @@ interface AppSidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
   onOpenSettings: () => void;
+  recentDocs: RecentDoc[];
+  onSelectRecentDoc: (id: number) => void;
+  onRemoveRecentDoc: (id: number) => void;
+  onClearRecentDocs: () => void;
 }
 
 interface NavItemProps {
@@ -71,7 +77,17 @@ function SidebarButton({ icon, label, slim, onClick }: {
   );
 }
 
-export function AppSidebar({ slim, onToggleSlim, mobileOpen, onCloseMobile, onOpenSettings }: AppSidebarProps) {
+export function AppSidebar({
+  slim,
+  onToggleSlim,
+  mobileOpen,
+  onCloseMobile,
+  onOpenSettings,
+  recentDocs,
+  onSelectRecentDoc,
+  onRemoveRecentDoc,
+  onClearRecentDocs,
+}: AppSidebarProps) {
   const { t } = useTranslation();
 
   const closeMobileOnNav = () => {
@@ -127,18 +143,23 @@ export function AppSidebar({ slim, onToggleSlim, mobileOpen, onCloseMobile, onOp
           />
         </SidebarSection>
 
-        {/* Saved Views placeholder */}
+        {/* Saved Views */}
         <SidebarSection title={t('toolbar.savedSearches')} slim={slim} defaultOpen>
-          {!slim && (
-            <p className="px-5 py-2 text-xs text-zinc-500">
-              {t('sidebar.noSavedSearches')}
-            </p>
-          )}
-          {slim && (
-            <div className="flex justify-center py-2" title={t('toolbar.savedSearches')}>
-              <Bookmark className="size-4 text-zinc-500" />
-            </div>
-          )}
+          <SavedViewNav slim={slim} onNavigate={closeMobileOnNav} />
+        </SidebarSection>
+
+        {/* Recently opened documents */}
+        <SidebarSection title={t('sidebar.recentDocs')} slim={slim} defaultOpen={false}>
+          <RecentDocuments
+            recentDocs={recentDocs}
+            slim={slim}
+            onSelect={(id) => {
+              onSelectRecentDoc(id);
+              closeMobileOnNav();
+            }}
+            onRemove={onRemoveRecentDoc}
+            onClearAll={onClearRecentDocs}
+          />
         </SidebarSection>
 
         {/* Spacer */}
@@ -162,14 +183,14 @@ export function AppSidebar({ slim, onToggleSlim, mobileOpen, onCloseMobile, onOp
           <button
             onClick={onToggleSlim}
             className="hidden md:flex items-center gap-3 px-3 py-2 mx-0 rounded-md text-sm text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800/50 transition-colors w-full"
-            title={slim ? 'Sidebar ausklappen' : 'Sidebar einklappen'}
+            title={slim ? t('sidebar.expand') : t('sidebar.collapse')}
           >
             {slim ? (
               <PanelLeft className="size-4 mx-auto" />
             ) : (
               <>
                 <PanelLeftClose className="size-4" />
-                <span className="text-xs transition-opacity duration-100">Einklappen</span>
+                <span className="text-xs transition-opacity duration-100">{t('sidebar.collapse')}</span>
               </>
             )}
           </button>

@@ -1,28 +1,65 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useParams, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useSearch } from '@/hooks/useSearch';
-import { excludeBatch } from '@/lib/api';
+import { excludeBatch, listSavedSearches } from '@/lib/api';
 import { useSettings } from '@/hooks/useSettings';
 import { FilterSidebar } from '@/components/FilterSidebar';
 import { FilterChips } from '@/components/FilterChips';
 import { FavoritesSidebar } from '@/components/FavoritesSidebar';
 import { ResultsList } from '@/components/ResultsList';
 import { DocumentDetail } from '@/components/DocumentDetail';
-import { ReviewQueue } from '@/components/ReviewQueue';
+import type { SearchFilters } from '@/lib/types';
 
-interface DocumentsPageProps {
-  activePanel: 'review' | null;
-  onSelectDoc?: (id: number) => void;
-  onCloseReview?: () => void;
+interface ShellContext {
+  addRecent: (id: number, title: string) => void;
 }
 
-export function DocumentsPage({ activePanel, onSelectDoc, onCloseReview }: DocumentsPageProps) {
+export function DocumentsPage() {
   const { settings } = useSettings();
+  const { viewId } = useParams<{ viewId: string }>();
+  const [searchParams] = useSearchParams();
+  const context = useOutletContext<ShellContext | undefined>();
   const search = useSearch({
     resultsPerPage: settings.results_per_page,
     defaultSort: settings.default_sort,
   });
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  // Load saved view when navigating to /view/:viewId
+  useEffect(() => {
+    if (!viewId) return;
+    listSavedSearches()
+      .then((views) => {
+        const view = views.find((v) => String(v.id) === viewId);
+        if (!view) return;
+        try {
+          const parsed = JSON.parse(view.query) as { q?: string } & SearchFilters;
+          search.setQuery(parsed.q || '');
+          search.setFilters({
+            category: parsed.category,
+            doc_type: parsed.doc_type,
+            year_min: parsed.year_min,
+            year_max: parsed.year_max,
+            language: parsed.language,
+            author: parsed.author,
+            file_type: parsed.file_type,
+            processing_status: parsed.processing_status,
+          });
+        } catch { /* ignore parse errors */ }
+      })
+      .catch(() => {});
+    // Only load on viewId change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewId]);
+
+  // Handle ?doc=id from sidebar recent docs click
+  useEffect(() => {
+    const docParam = searchParams.get('doc');
+    if (docParam) {
+      setSelectedDocId(Number(docParam));
+    }
+  }, [searchParams]);
 
   const handleToggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => {
@@ -59,7 +96,11 @@ export function DocumentsPage({ activePanel, onSelectDoc, onCloseReview }: Docum
 
   const handleDocSelect = (id: number) => {
     setSelectedDocId(id);
-    onSelectDoc?.(id);
+    // Add to recent docs in sidebar
+    const doc = search.results?.documents.find((d) => d.id === id);
+    if (doc && context?.addRecent) {
+      context.addRecent(id, doc.title || doc.file_path.split('/').pop() || `#${id}`);
+    }
   };
 
   return (
@@ -76,38 +117,26 @@ export function DocumentsPage({ activePanel, onSelectDoc, onCloseReview }: Docum
         />
       </aside>
 
-      {/* Center: results or review queue */}
+      {/* Center: results */}
       <main className="flex-1 overflow-y-auto">
-        {activePanel === 'review' ? (
-          <ReviewQueue
-            onSelectDoc={(id) => {
-              handleDocSelect(id);
-              onCloseReview?.();
-            }}
-            onClose={() => onCloseReview?.()}
-          />
-        ) : (
-          <>
-            <FilterChips
-              filters={search.filters}
-              onFilterChange={search.setFilters}
-            />
-            <ResultsList
-              documents={search.results?.documents}
-              total={search.results?.total}
-              loading={search.loading}
-              offset={search.offset}
-              onLoadMore={() => search.setOffset()}
-              onSelect={handleDocSelect}
-              viewMode={settings.view_mode}
-              selectedIds={selectedIds}
-              onToggleSelect={handleToggleSelect}
-              onSelectAll={handleSelectAll}
-              onDeselectAll={handleDeselectAll}
-              onExcludeSelected={handleExcludeSelected}
-            />
-          </>
-        )}
+        <FilterChips
+          filters={search.filters}
+          onFilterChange={search.setFilters}
+        />
+        <ResultsList
+          documents={search.results?.documents}
+          total={search.results?.total}
+          loading={search.loading}
+          offset={search.offset}
+          onLoadMore={() => search.setOffset()}
+          onSelect={handleDocSelect}
+          viewMode={settings.view_mode}
+          selectedIds={selectedIds}
+          onToggleSelect={handleToggleSelect}
+          onSelectAll={handleSelectAll}
+          onDeselectAll={handleDeselectAll}
+          onExcludeSelected={handleExcludeSelected}
+        />
       </main>
 
       {/* Right panel: document detail */}

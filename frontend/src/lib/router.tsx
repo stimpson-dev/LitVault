@@ -11,11 +11,11 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <DocumentsPage activePanel={null} />,
+        element: <DocumentsPage />,
       },
       {
         path: 'view/:viewId',
-        element: <DocumentsPage activePanel={null} />,
+        element: <DocumentsPage />,
       },
       {
         path: 'dashboard',

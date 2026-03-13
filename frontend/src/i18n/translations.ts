@@ -67,6 +67,9 @@ const de = {
   "sidebar.noSavedSearches": "Keine gespeicherten Suchen",
   "sidebar.collapse": "Einklappen",
   "sidebar.expand": "Ausklappen",
+  "sidebar.recentDocs": "Zuletzt geöffnet",
+  "sidebar.noRecentDocs": "Keine zuletzt geöffneten Dokumente",
+  "sidebar.clearAll": "Alle schließen",
 
   // Settings
   "settings.title": "Einstellungen",
@@ -279,6 +282,9 @@ const en: Record<keyof typeof de, string> = {
   "sidebar.noSavedSearches": "No saved searches",
   "sidebar.collapse": "Collapse",
   "sidebar.expand": "Expand",
+  "sidebar.recentDocs": "Recently Opened",
+  "sidebar.noRecentDocs": "No recently opened documents",
+  "sidebar.clearAll": "Close all",
 
   // Settings
   "settings.title": "Settings",

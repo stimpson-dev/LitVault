@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useNavigate } from 'react-router-dom';
 import { useSettings } from '@/hooks/useSettings';
 import { useSearch } from '@/hooks/useSearch';
 import { useTheme } from '@/hooks/useTheme';
+import { useRecentDocs } from '@/hooks/useRecentDocs';
 import { AppNavbar } from './AppNavbar';
 import { AppSidebar } from './AppSidebar';
 import { SettingsPanel } from '@/components/SettingsPanel';
@@ -19,6 +20,8 @@ export function AppShell() {
     defaultSort: settings.default_sort,
   });
   const { theme, setTheme, toggle: toggleTheme } = useTheme();
+  const { recentDocs, addRecent, removeRecent, clearAll } = useRecentDocs();
+  const navigate = useNavigate();
 
   const [sidebarSlim, setSidebarSlim] = useState(() => {
     return localStorage.getItem('litvault-sidebar-slim') === 'true';
@@ -58,6 +61,11 @@ export function AppShell() {
     setActiveDropdown(null);
   };
 
+  const handleSelectRecentDoc = (id: number) => {
+    // Navigate to documents page and signal doc selection
+    navigate(`/?doc=${id}`);
+  };
+
   return (
     <div className="h-screen bg-zinc-950 text-zinc-100 flex flex-col overflow-hidden">
       {/* Fixed navbar */}
@@ -81,15 +89,14 @@ export function AppShell() {
           mobileOpen={mobileOpen}
           onCloseMobile={() => setMobileOpen(false)}
           onOpenSettings={() => setShowSettings(true)}
+          recentDocs={recentDocs}
+          onSelectRecentDoc={handleSelectRecentDoc}
+          onRemoveRecentDoc={removeRecent}
+          onClearRecentDocs={clearAll}
         />
 
         {/* Main content area */}
-        <div
-          className="flex-1 flex flex-col overflow-hidden transition-all duration-200"
-          style={{
-            marginLeft: undefined, // sidebar is sticky/fixed, main fills remaining
-          }}
-        >
+        <div className="flex-1 flex flex-col overflow-hidden transition-all duration-200">
           {/* Dropdown panels */}
           {activeDropdown && (
             <div className="relative z-30">
@@ -114,7 +121,7 @@ export function AppShell() {
 
           {/* Page content via router */}
           <div className="flex-1 overflow-hidden">
-            <Outlet />
+            <Outlet context={{ addRecent }} />
           </div>
         </div>
       </div>
