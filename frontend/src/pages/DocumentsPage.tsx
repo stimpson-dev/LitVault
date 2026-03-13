@@ -166,6 +166,9 @@ export function DocumentsPage() {
   }, [search.results?.documents]);
 
   const handleDocSelect = (id: number) => {
+    if (search.results?.documents) {
+      sessionStorage.setItem('docListIds', JSON.stringify(search.results.documents.map((d) => d.id)));
+    }
     navigate(`/documents/${id}`);
   };
 

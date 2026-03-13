@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useOutletContext } from 'react-router-dom';
-import { ArrowLeft, FileText, FolderOpen, Trash2, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ArrowRight, ChevronLeft, ChevronRight, FileText, FolderOpen, Search, Trash2, RotateCcw } from 'lucide-react';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
 import { getDocument, openDocument, excludeDocument, restoreDocument } from '@/lib/api';
 import type { DocumentDetail as DocumentDetailType } from '@/lib/types';
 import { FavoriteButton } from '@/components/FavoriteButton';
@@ -28,6 +29,20 @@ export function DocumentDetailPage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabId>('details');
 
+  // Read docListIds from sessionStorage for Save & Next navigation
+  const docListIds: number[] = useMemo(
+    () => JSON.parse(sessionStorage.getItem('docListIds') || '[]'),
+    // Re-read when docId changes (navigating between docs)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [docId],
+  );
+  const currentIndex = docListIds.indexOf(docId);
+  const prevDocId = currentIndex > 0 ? docListIds[currentIndex - 1] : null;
+  const nextDocId =
+    currentIndex >= 0 && currentIndex < docListIds.length - 1
+      ? docListIds[currentIndex + 1]
+      : null;
+
   useEffect(() => {
     setLoading(true);
     setDoc(null);
@@ -45,6 +60,36 @@ export function DocumentDetailPage() {
       );
     }
   }, [doc, context]);
+
+  const handleSave = useCallback(() => {
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  }, []);
+
+  const handleSaveAndNext = useCallback(() => {
+    handleSave();
+    if (nextDocId) navigate(`/documents/${nextDocId}`);
+  }, [handleSave, navigate, nextDocId]);
+
+  const handleMoreLikeThis = useCallback(() => {
+    if (!doc) return;
+    const q = doc.title || '';
+    navigate(`/documents?q=${encodeURIComponent(q)}`);
+  }, [doc, navigate]);
+
+  useKeyboardShortcuts(
+    useMemo(
+      () => ({
+        'ctrl+s': () => handleSave(),
+        'ctrl+shift+s': () => handleSaveAndNext(),
+        escape: () => navigate(-1),
+        'ctrl+arrowleft': () => prevDocId && navigate(`/documents/${prevDocId}`),
+        'ctrl+arrowright': () => nextDocId && navigate(`/documents/${nextDocId}`),
+      }),
+      [handleSave, handleSaveAndNext, navigate, prevDocId, nextDocId],
+    ),
+  );
 
   const tabs: { id: TabId; label: string }[] = [
     { id: 'details', label: t('detail.tabDetails') },
@@ -72,6 +117,15 @@ export function DocumentDetailPage() {
         {/* Action buttons */}
         {doc && (
           <div className="flex items-center gap-1 shrink-0">
+            {/* More like this */}
+            <button
+              onClick={handleMoreLikeThis}
+              className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors"
+              title={t('detail.moreLikeThis')}
+            >
+              <Search size={15} />
+            </button>
+
             <FavoriteButton docId={doc.id} />
             <button
               onClick={async () => {
@@ -120,6 +174,48 @@ export function DocumentDetailPage() {
                 title={t('detail.exclude')}
               >
                 <Trash2 size={15} />
+              </button>
+            )}
+
+            {/* Separator */}
+            {docListIds.length > 0 && (
+              <span className="w-px h-4 bg-zinc-700 mx-1" />
+            )}
+
+            {/* Position indicator + prev/next navigation */}
+            {docListIds.length > 0 && (
+              <>
+                <span className="text-xs text-zinc-500 tabular-nums">
+                  {currentIndex >= 0 ? currentIndex + 1 : '–'} {t('detail.of')} {docListIds.length}
+                </span>
+                <button
+                  onClick={() => prevDocId && navigate(`/documents/${prevDocId}`)}
+                  disabled={!prevDocId}
+                  className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={`${t('detail.prev')} (Ctrl+←)`}
+                >
+                  <ChevronLeft size={15} />
+                </button>
+                <button
+                  onClick={() => nextDocId && navigate(`/documents/${nextDocId}`)}
+                  disabled={!nextDocId}
+                  className="p-1.5 rounded hover:bg-zinc-800 text-zinc-400 hover:text-zinc-100 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title={`${t('detail.next')} (Ctrl+→)`}
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </>
+            )}
+
+            {/* Save & Next */}
+            {nextDocId && (
+              <button
+                onClick={handleSaveAndNext}
+                className="flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-zinc-100 transition-colors"
+                title="Ctrl+Shift+S"
+              >
+                <ArrowRight size={12} />
+                {t('detail.saveNext')}
               </button>
             )}
           </div>

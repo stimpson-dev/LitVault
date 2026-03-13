@@ -168,6 +168,13 @@ const de = {
   "detail.downloadFile": "Datei herunterladen",
   "detail.titleLabel": "Titel",
   "detail.yearLabel": "Jahr",
+  "detail.saveNext": "Speichern & Weiter",
+  "detail.saveClose": "Speichern & Schließen",
+  "detail.moreLikeThis": "Ähnliche Dokumente",
+  "detail.noMore": "Keine weiteren Dokumente",
+  "detail.of": "von",
+  "detail.prev": "Zurück",
+  "detail.next": "Weiter",
 
   // Stats / Dashboard
   "stats.title": "Dashboard",
@@ -427,6 +434,13 @@ const en: Record<keyof typeof de, string> = {
   "detail.downloadFile": "Download file",
   "detail.titleLabel": "Title",
   "detail.yearLabel": "Year",
+  "detail.saveNext": "Save & Next",
+  "detail.saveClose": "Save & Close",
+  "detail.moreLikeThis": "More like this",
+  "detail.noMore": "No more documents",
+  "detail.of": "of",
+  "detail.prev": "Previous",
+  "detail.next": "Next",
 
   // Stats / Dashboard
   "stats.title": "Dashboard",
