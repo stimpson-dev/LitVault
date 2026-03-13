@@ -3,9 +3,8 @@ import { useParams, useOutletContext, useSearchParams } from 'react-router-dom';
 import { useSearch } from '@/hooks/useSearch';
 import { excludeBatch, listSavedSearches } from '@/lib/api';
 import { useSettings } from '@/hooks/useSettings';
-import { FilterSidebar } from '@/components/FilterSidebar';
+import { FilterBar } from '@/components/filters/FilterBar';
 import { FilterChips } from '@/components/FilterChips';
-import { FavoritesSidebar } from '@/components/FavoritesSidebar';
 import { ResultsList } from '@/components/ResultsList';
 import { DocumentDetail } from '@/components/DocumentDetail';
 import { DocumentToolbar } from '@/components/DocumentToolbar';
@@ -21,7 +20,7 @@ interface ShellContext {
 export function DocumentsPage() {
   const { settings } = useSettings();
   const { viewId } = useParams<{ viewId: string }>();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const context = useOutletContext<ShellContext | undefined>();
 
   const [sort, setSort] = useState<SortOption>(settings.default_sort);
@@ -42,6 +41,51 @@ export function DocumentsPage() {
   });
   const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  // On mount: read URL params and initialize filters (only once)
+  useEffect(() => {
+    const q = searchParams.get('q');
+    const category = searchParams.get('category');
+    const doc_type = searchParams.get('doc_type');
+    const year_min = searchParams.get('year_min');
+    const year_max = searchParams.get('year_max');
+    const file_type = searchParams.get('file_type');
+    const processing_status = searchParams.get('processing_status');
+    const created_after = searchParams.get('created_after');
+    const created_before = searchParams.get('created_before');
+
+    if (q) search.setQuery(q);
+
+    const initialFilters: SearchFilters = {};
+    if (category) initialFilters.category = category;
+    if (doc_type) initialFilters.doc_type = doc_type;
+    if (year_min) initialFilters.year_min = Number(year_min);
+    if (year_max) initialFilters.year_max = Number(year_max);
+    if (file_type) initialFilters.file_type = file_type;
+    if (processing_status) initialFilters.processing_status = processing_status;
+    if (created_after) initialFilters.created_after = created_after;
+    if (created_before) initialFilters.created_before = created_before;
+
+    if (Object.keys(initialFilters).length > 0) {
+      search.setFilters(initialFilters);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // On filter/query change: update URL params
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (search.query) params.set('q', search.query);
+    if (search.filters.category) params.set('category', search.filters.category);
+    if (search.filters.doc_type) params.set('doc_type', search.filters.doc_type);
+    if (search.filters.year_min !== undefined) params.set('year_min', String(search.filters.year_min));
+    if (search.filters.year_max !== undefined) params.set('year_max', String(search.filters.year_max));
+    if (search.filters.file_type) params.set('file_type', search.filters.file_type);
+    if (search.filters.processing_status) params.set('processing_status', search.filters.processing_status);
+    if (search.filters.created_after) params.set('created_after', search.filters.created_after);
+    if (search.filters.created_before) params.set('created_before', search.filters.created_before);
+    setSearchParams(params, { replace: true });
+  }, [search.filters, search.query, setSearchParams]);
 
   // Load saved view when navigating to /view/:viewId
   useEffect(() => {
@@ -122,20 +166,13 @@ export function DocumentsPage() {
 
   return (
     <div className="flex flex-1 overflow-hidden h-full">
-      {/* Left sidebar: favorites + filters */}
-      <aside className="w-72 border-r border-zinc-800 overflow-y-auto shrink-0 hidden lg:block">
-        {settings.show_favorites_sidebar && (
-          <FavoritesSidebar onSelect={handleDocSelect} />
-        )}
-        <FilterSidebar
+      {/* Center: filter bar + results */}
+      <main className="flex-1 overflow-y-auto">
+        <FilterBar
           facets={search.results?.facets}
           filters={search.filters}
           onFilterChange={search.setFilters}
         />
-      </aside>
-
-      {/* Center: results */}
-      <main className="flex-1 overflow-y-auto">
         <FilterChips
           filters={search.filters}
           onFilterChange={search.setFilters}

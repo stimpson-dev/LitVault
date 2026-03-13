@@ -207,6 +207,21 @@ const de = {
   "theme.enableLight": "Helles Design aktivieren",
   "theme.enableDark": "Dunkles Design aktivieren",
 
+  // Filter bar
+  "filter.resetAll": "Filter zurücksetzen",
+  "filter.search": "Suchen...",
+  "filter.included": "Eingeschlossen",
+  "filter.excluded": "Ausgeschlossen",
+  "filter.dateRange": "Zeitraum",
+  "filter.from": "Von",
+  "filter.to": "Bis",
+  "filter.thisMonth": "Dieser Monat",
+  "filter.last3Months": "Letzte 3 Monate",
+  "filter.thisYear": "Dieses Jahr",
+  "filter.lastYear": "Letztes Jahr",
+  "filter.apply": "Anwenden",
+  "filter.clear": "Löschen",
+
   // Filter chips
   "chips.size": "Größe",
   "chips.yearFrom": "ab",
@@ -432,6 +447,21 @@ const en: Record<keyof typeof de, string> = {
   // Theme toggle
   "theme.enableLight": "Enable light mode",
   "theme.enableDark": "Enable dark mode",
+
+  // Filter bar
+  "filter.resetAll": "Reset filters",
+  "filter.search": "Search...",
+  "filter.included": "Included",
+  "filter.excluded": "Excluded",
+  "filter.dateRange": "Date Range",
+  "filter.from": "From",
+  "filter.to": "To",
+  "filter.thisMonth": "This month",
+  "filter.last3Months": "Last 3 months",
+  "filter.thisYear": "This year",
+  "filter.lastYear": "Last year",
+  "filter.apply": "Apply",
+  "filter.clear": "Clear",
 
   // Filter chips
   "chips.size": "Size",
