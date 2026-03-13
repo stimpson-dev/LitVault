@@ -262,6 +262,15 @@ const de = {
   "bulk.export": "Exportieren",
   "bulk.of": "von",
   "bulk.documents": "Dokumenten",
+
+  // Dashboard widgets
+  "dashboard.statistics": "Statistiken",
+  "dashboard.fileTypes": "Dateitypen",
+  "dashboard.viewAll": "Alle anzeigen",
+  "dashboard.noDocuments": "Keine Dokumente für diese Ansicht",
+  "dashboard.welcome": "Willkommen bei LitVault",
+  "dashboard.welcomeHint": "Speichern Sie eine Suche auf der Dokumentenseite, um sie hier als Widget zu sehen.",
+  "dashboard.goToDocuments": "Zu den Dokumenten",
 } as const;
 
 const en: Record<keyof typeof de, string> = {
@@ -528,6 +537,15 @@ const en: Record<keyof typeof de, string> = {
   "bulk.export": "Export",
   "bulk.of": "of",
   "bulk.documents": "documents",
+
+  // Dashboard widgets
+  "dashboard.statistics": "Statistics",
+  "dashboard.fileTypes": "File Types",
+  "dashboard.viewAll": "View all",
+  "dashboard.noDocuments": "No documents match this view",
+  "dashboard.welcome": "Welcome to LitVault",
+  "dashboard.welcomeHint": "Save a search from the documents page to see it here as a widget.",
+  "dashboard.goToDocuments": "Go to Documents",
 };
 
 export type TranslationKey = keyof typeof de;
