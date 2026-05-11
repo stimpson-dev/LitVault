@@ -39,7 +39,7 @@ export function AppNavbar({
       </button>
 
       {/* Logo */}
-      <span className="text-sm font-semibold text-zinc-300 tracking-tight hidden sm:block shrink-0">
+      <span className="text-3xl font-semibold text-zinc-300 tracking-tight hidden sm:block shrink-0">
         LitVault
       </span>
 
