@@ -2,6 +2,7 @@ import asyncio
 import logging
 import numpy as np
 import re
+import threading
 import unicodedata
 from pathlib import Path
 
@@ -16,6 +17,7 @@ logger = logging.getLogger("litvault.parser.pdf")
 
 # Lazy-loaded EasyOCR reader (heavy model, load once)
 _ocr_reader = None
+_ocr_lock = threading.Lock()  # EasyOCR-Reader ist nicht thread-safe; GPU ohnehin seriell
 
 
 def _get_ocr():
@@ -77,8 +79,9 @@ def _ocr_page(page: fitz.Page) -> str:
     img_array = np.array(img)
     del img, pixmap
 
-    reader = _get_ocr()
-    results = reader.readtext(img_array, detail=1, paragraph=False)
+    with _ocr_lock:
+        reader = _get_ocr()
+        results = reader.readtext(img_array, detail=1, paragraph=False)
 
     if not results:
         return ""
