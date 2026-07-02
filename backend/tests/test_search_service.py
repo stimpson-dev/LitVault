@@ -47,3 +47,19 @@ async def test_fts_injection_is_sanitized(db_session):
     # Darf keine Exception werfen und nichts Unerwartetes matchen
     result = await SearchService(db_session).search('kegelrad" OR "x', limit=10)
     assert isinstance(result.total, int)
+
+
+async def test_facets_shape_and_counts(db_session):
+    svc = SearchService(db_session)
+    facets = await svc.get_facets(query="", filters=None)
+    assert set(facets.keys()) == {"categories", "doc_types", "years", "file_types", "statuses"}
+    doc_types = {f["name"]: f["count"] for f in facets["doc_types"]}
+    assert doc_types.get("bericht") == 1 and doc_types.get("norm") == 1
+    file_types = {f["name"]: f["count"] for f in facets["file_types"]}
+    assert file_types.get("pdf") == 3 and file_types.get("docx") == 1
+
+
+async def test_facets_with_fts_query(db_session):
+    facets = await SearchService(db_session).get_facets(query="kegelrad")
+    years = {f["name"] for f in facets["years"]}
+    assert years == {2019, 2014}

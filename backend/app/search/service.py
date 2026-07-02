@@ -271,90 +271,45 @@ class SearchService:
 
         filter_sql = " ".join(filter_clauses)
 
-        # For FTS-filtered facets we need to restrict to matching document IDs
+        cte = ""
         if sanitized:
             params["query"] = sanitized
-            fts_join = (
-                " JOIN documents_fts fts ON fts.rowid = d.id"
-                " AND documents_fts MATCH :query"
-            )
-            fts_subquery = (
-                "AND d.id IN ("
-                "SELECT documents_fts.rowid FROM documents_fts WHERE documents_fts MATCH :query"
-                ")"
-            )
+            cte = ("WITH matched(rowid) AS ("
+                   "SELECT documents_fts.rowid FROM documents_fts WHERE documents_fts MATCH :query) ")
+            fts_subquery = "AND d.id IN (SELECT rowid FROM matched)"
         else:
-            fts_join = ""
             fts_subquery = ""
 
-        category_sql = (
-            "SELECT c.name, COUNT(*) as count"
-            " FROM document_categories dc"
-            " JOIN categories c ON c.id = dc.category_id"
-            " JOIN documents d ON d.id = dc.document_id"
-            " WHERE d.processing_status = 'done'"
-            f" {fts_subquery}"
-            f" {filter_sql}"
-            " GROUP BY c.name ORDER BY count DESC"
-        )
-
-        doc_type_sql = (
-            "SELECT d.doc_type AS name, COUNT(*) as count"
-            " FROM documents d"
-            " WHERE d.processing_status = 'done'"
-            " AND d.doc_type IS NOT NULL"
-            f" {fts_subquery}"
-            f" {filter_sql}"
-            " GROUP BY d.doc_type ORDER BY count DESC"
-        )
-
-        year_sql = (
-            "SELECT d.year AS name, COUNT(*) as count"
-            " FROM documents d"
-            " WHERE d.processing_status = 'done'"
-            " AND d.year IS NOT NULL"
-            f" {fts_subquery}"
-            f" {filter_sql}"
-            " GROUP BY d.year ORDER BY d.year DESC"
-        )
-
-        file_type_sql = (
-            "SELECT d.file_type AS name, COUNT(*) as count"
-            " FROM documents d"
-            " WHERE 1=1"
-            f" {fts_subquery}"
-            f" {filter_sql}"
-            " AND d.file_type IS NOT NULL"
-            " GROUP BY d.file_type ORDER BY count DESC"
-        )
-
-        status_sql = (
-            "SELECT d.processing_status AS name, COUNT(*) as count"
-            " FROM documents d"
-            " WHERE 1=1"
-            f" {fts_subquery}"
-            f" {filter_sql}"
-            " GROUP BY d.processing_status ORDER BY count DESC"
-        )
+        union_sql = cte + " UNION ALL ".join([
+            ("SELECT 'categories' AS facet, c.name AS name, COUNT(*) AS count"
+             " FROM document_categories dc"
+             " JOIN categories c ON c.id = dc.category_id"
+             " JOIN documents d ON d.id = dc.document_id"
+             f" WHERE d.processing_status = 'done' {fts_subquery} {filter_sql}"
+             " GROUP BY c.name"),
+            ("SELECT 'doc_types', d.doc_type, COUNT(*) FROM documents d"
+             f" WHERE d.processing_status = 'done' AND d.doc_type IS NOT NULL {fts_subquery} {filter_sql}"
+             " GROUP BY d.doc_type"),
+            ("SELECT 'years', d.year, COUNT(*) FROM documents d"
+             f" WHERE d.processing_status = 'done' AND d.year IS NOT NULL {fts_subquery} {filter_sql}"
+             " GROUP BY d.year"),
+            ("SELECT 'file_types', d.file_type, COUNT(*) FROM documents d"
+             f" WHERE 1=1 {fts_subquery} {filter_sql} AND d.file_type IS NOT NULL"
+             " GROUP BY d.file_type"),
+            ("SELECT 'statuses', d.processing_status, COUNT(*) FROM documents d"
+             f" WHERE 1=1 {fts_subquery} {filter_sql}"
+             " GROUP BY d.processing_status"),
+        ])
 
         facets: dict = {"categories": [], "doc_types": [], "years": [], "file_types": [], "statuses": []}
-
         try:
-            cat_rows = await self.db.execute(text(category_sql), params)
-            facets["categories"] = [dict(row._mapping) for row in cat_rows]
-
-            dt_rows = await self.db.execute(text(doc_type_sql), params)
-            facets["doc_types"] = [dict(row._mapping) for row in dt_rows]
-
-            yr_rows = await self.db.execute(text(year_sql), params)
-            facets["years"] = [dict(row._mapping) for row in yr_rows]
-
-            ft_rows = await self.db.execute(text(file_type_sql), params)
-            facets["file_types"] = [dict(row._mapping) for row in ft_rows]
-
-            st_rows = await self.db.execute(text(status_sql), params)
-            facets["statuses"] = [dict(row._mapping) for row in st_rows]
+            rows = await self.db.execute(text(union_sql), params)
+            for facet, name, count in rows:
+                facets[facet].append({"name": name, "count": count})
         except Exception as exc:
             logger.error("Facet query failed: %s", exc)
 
+        for key in ("categories", "doc_types", "file_types", "statuses"):
+            facets[key].sort(key=lambda e: e["count"], reverse=True)
+        facets["years"].sort(key=lambda e: e["name"], reverse=True)
         return facets
