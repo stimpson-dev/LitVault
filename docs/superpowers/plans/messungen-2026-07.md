@@ -196,4 +196,80 @@ Der Temp-B-Tree für ORDER BY auf dem Browse-Pfad entfällt vollständig.
 - `snippet()`/`bm25()` werden jetzt nur für die 100 Zeilen der Ergebnis-Seite berechnet statt für alle 1 101 Matches — konsistent mit der Controller-Diagnose (Query ohne snippet: 222 ms).
 - Antwortgröße unverändert (~125 KB) — Verhalten identisch, nur die Berechnungsreihenfolge geändert. Behavior-Lock-Tests (Pagination im FTS-Zweig, Snippet-Felder vorhanden) bestehen vor und nach dem Umbau; volle Suite: 37 passed.
 
-<!-- Weitere Messpunkte werden nach Tasks 15–17 hier ergänzt -->
+---
+
+## Task 15: Ingest-Parallelisierung (N Parse-Worker + einzelner DB-Writer)
+
+**Datum:** 2026-07-02
+**Branch:** `feature/performance-umbau`
+**Änderung:** `IngestService.ingest_folder` (`app/ingest/service.py`) von sequenzieller
+for-Schleife auf Producer/Consumer umgebaut: N parallele Parse-Producer (begrenzt durch
+`asyncio.Semaphore(settings.parse_parallelism)`, Default 3) + **genau ein** DB-Writer-Task,
+der eine `asyncio.Queue` konsumiert (SQLite ist single-writer, `AsyncSession` ist nicht
+thread-safe). Neues Config-Feld `parse_parallelism: int = 3`. Der alte pro-Dokument
+Zwischencommit (`processing_status = "processing"`) samt zugehöriger `FACET_CACHE.invalidate()`
+entfällt — der Writer setzt direkt den Endzustand und invalidiert einmal pro Dokument.
+
+### Messaufbau (Realmessung, echte Text-PDFs)
+
+- 10 echte Text-PDFs (1–5 MB, ⌀ ~2,5 MB, gesamt 25,5 MB) aus `D:\Literatur`, per PyMuPDF
+  auf extrahierbaren Text vorselektiert (keine Scans → kein OCR-Pfad).
+- Zwei Ordner: `ingest_bench_A` (Original-Namen) und `ingest_bench_B` (Dateien mit Suffix
+  `_b`, damit der Crawler sie als neue `file_path` behandelt).
+- Server isoliert gestartet (`watch_folders` temporär leer, danach restauriert), damit der
+  einzelne Job-Worker ausschließlich den Bench-Crawl bearbeitet.
+- Crawl via `POST /api/jobs/crawl`, Dauer über Wall-Clock des Poll-Loops. Crawl nutzt
+  `IngestService(..., ollama=None)` → Klassifikation deaktiviert, Messung spiegelt reine
+  Parse-Parallelisierung.
+- **Baseline (VORHER):** altes sequentielles `service.py` (via `git stash`) auf Ordner A.
+- **Nachher:** refaktorierter Code (Semaphore=3) auf Ordner B.
+
+### Ergebnisse
+
+| Lauf | Code | Ordner | Dokumente | Fehler | Dauer (s) | docs/min |
+|------|------|--------|-----------|--------|-----------|----------|
+| Baseline | sequentiell | A | 10 | 0 | 25,84 | 23,2 |
+| Nachher  | parallel (sem=3) | B | 10 | 0 | 26,62 | 22,5 |
+
+**Faktor: 0,97× (kein Wall-Clock-Speedup, minimal langsamer durch Thread-Overhead).**
+
+### Kontroll-Mikrobenchmark (isoliert, ohne HTTP/DB/Job-Overhead)
+
+Direkter Vergleich `parse_pdf` über dieselben 10 Dateien, 28 CPU-Kerne verfügbar:
+
+| Variante | Dauer (s) | Speedup |
+|----------|-----------|---------|
+| SEQ (1 Thread)      | 24,04 | 1,00× |
+| PAR (3 Threads)     | 24,44 | 0,98× |
+
+### Befund / Root-Cause
+
+Das Spec-Ziel „≥ 3× bei Text-PDFs" wird **nicht** erreicht. Ursache ist **nicht** der Umbau,
+sondern der Parser-Pfad: `parse_pdf` nutzt primär `pymupdf4llm.to_markdown()`, das den
+Großteil seiner Arbeit als **GIL-haltender Python-Code** verrichtet. `parse_document` läuft
+per `asyncio.to_thread` in einem Thread-Pool — Threads können GIL-gebundene CPU-Arbeit nicht
+echt parallelisieren (bestätigt: 3 Threads ≈ 1 Thread trotz 28 Kernen).
+
+Der Umbau ist dennoch **korrekt und wertvoll**:
+- **Korrektheit** durch Concurrency-Test `tests/test_ingest_parallel.py::test_parses_overlap`
+  bewiesen (max. gleichzeitige Parses ≥ 2; RED vorher = 1/seriell, GREEN nachher).
+- Liefert die Architektur für echte Parallelität, sobald der Parse-Pfad **GIL freigibt**
+  (I/O-lastige Reads von Netzlaufwerken Z:\/T:\, GPU-OCR, oder späterer Wechsel auf
+  `ProcessPoolExecutor`).
+- Entfernt den pro-Dokument Zwischencommit (halbiert Commits + Cache-Invalidierungen) und
+  serialisiert DB-Schreibzugriffe sauber über **einen** Writer (SQLite single-writer-sicher).
+- Cancellation- und Producer-Crash-Pfade terminieren den Writer garantiert
+  (`gather(..., return_exceptions=True)` + Nachreichen eines Fehler-Ergebnisses pro
+  abgestürztem Producer, damit `handled == total_found` erreicht wird).
+
+**Empfehlung (Folgetask):** Für den Spec-Ziel-Speedup den Parse-Schritt auf
+`ProcessPoolExecutor` (Multiprocessing) umstellen — der jetzige Umbau ist die notwendige
+Vorstufe (Producer/Consumer-Struktur steht).
+
+### Cleanup
+
+Beide Bench-Sätze (20 Dokumente, `file_path LIKE '%ingest_bench_%'`) nach der Messung über
+`DELETE /api/documents/{id}` soft-exkludiert (`excluded=1`), verifiziert: 0 aktiv verbleibend.
+`PRAGMA integrity_check` = ok.
+
+<!-- Weitere Messpunkte werden nach Tasks 16–17 hier ergänzt -->

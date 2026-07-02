@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from app.config import Settings
 from app.documents.models import Category, Document, DocumentCategory, DocumentTag, Tag
 from app.ingest.crawler import find_new_files
 from app.ingest.parsers import parse_document
+from app.ingest.parsers.models import ParseResult
 from app.ingest.thumbnail import generate_thumbnail_async
 from app.search.facet_cache import FACET_CACHE
 
@@ -128,73 +130,117 @@ class IngestService:
         logger.info("Found %d new/changed files in %s", total_found, folder)
         if on_progress:
             on_progress(0, total_found, f"Found {total_found} files in {folder}")
-        processed = 0
-        errors = 0
         skipped = 0
 
-        for idx, meta in enumerate(new_files):
-            if is_cancelled and is_cancelled():
-                logger.info("Crawl cancelled after %d/%d files", idx, total_found)
-                break
-            try:
-                doc = await self._upsert_document(meta)
-                doc.processing_status = "processing"
-                await self.db.commit()
-                FACET_CACHE.invalidate()
+        if total_found == 0:
+            return IngestResult(
+                total_found=0,
+                new_files=0,
+                processed=0,
+                errors=0,
+                skipped=skipped,
+            )
 
-                result = await parse_document(Path(meta["file_path"]), meta["file_type"])
+        # Producer/Consumer: N parallele Parse-Worker (Semaphore) + genau EIN
+        # DB-Schreiber (SQLite ist single-writer, AsyncSession ist nicht thread-safe).
+        parse_sem = asyncio.Semaphore(self.settings.parse_parallelism)
+        results_q: asyncio.Queue = asyncio.Queue(maxsize=self.settings.parse_parallelism * 2)
 
-                if result.error:
-                    doc.processing_status = "error"
-                    doc.summary = result.error
-                    errors += 1
-                    logger.warning("Parse error for %s: %s", meta["file_path"], result.error)
-                else:
-                    doc.full_text = result.text
-                    doc.has_text = result.has_text
-                    doc.page_count = result.page_count
-                    doc.processing_status = "done"
-                    doc.indexed_at = datetime.now(timezone.utc).isoformat()
-                    processed += 1
-
-                    if meta["file_type"] == "pdf":
-                        thumb_path = await generate_thumbnail_async(
-                            Path(meta["file_path"]),
-                            Path(self.settings.thumbnails_dir),
-                        )
-                        if thumb_path is not None:
-                            logger.debug("Thumbnail generated: %s", thumb_path)
-
-                    # Apply filename-based metadata as baseline (AI can override below)
-                    meta_from_name = extract_from_filename(Path(meta["file_path"]).name)
-                    if meta_from_name.title and not doc.title:
-                        doc.title = meta_from_name.title
-                    if meta_from_name.year and not doc.year:
-                        doc.year = meta_from_name.year
-                    if meta_from_name.doc_type and not doc.doc_type:
-                        doc.doc_type = meta_from_name.doc_type
-                    if not doc.classification_source:
-                        doc.classification_source = "filename"
-
-                    # Classify document
-                    try:
-                        await self._apply_classification(doc, result.text)
-                    except Exception as cls_err:
-                        logger.warning("Classification failed for '%s': %s", Path(meta["file_path"]).name, cls_err)
-
-                await self.db.commit()
-                FACET_CACHE.invalidate()
-
-                if on_progress:
-                    on_progress(idx + 1, total_found, f"Processed: {meta['file_path']}")
-
-            except Exception as exc:
-                logger.error("Unexpected error ingesting %s: %s", meta["file_path"], exc)
-                errors += 1
+        async def produce(meta: dict) -> None:
+            """Parst (+ Thumbnail) OHNE DB-Zugriff; Ergebnis in die Queue."""
+            async with parse_sem:
+                if is_cancelled and is_cancelled():
+                    await results_q.put((meta, None, None))
+                    return
                 try:
-                    await self.db.rollback()
-                except Exception:
-                    pass
+                    parse_result = await parse_document(
+                        Path(meta["file_path"]), meta["file_type"]
+                    )
+                    thumb = None
+                    if meta["file_type"] == "pdf" and not parse_result.error:
+                        thumb = await generate_thumbnail_async(
+                            Path(meta["file_path"]), Path(self.settings.thumbnails_dir)
+                        )
+                    await results_q.put((meta, parse_result, thumb))
+                except Exception as exc:  # Parser-Absturz -> als Fehler-Ergebnis melden
+                    await results_q.put((meta, ParseResult(error=str(exc)), None))
+
+        async def write_all() -> tuple[int, int]:
+            """Einziger DB-Schreiber: konsumiert Ergebnisse, committed sequenziell."""
+            done = 0
+            failed = 0
+            handled = 0
+            while handled < total_found:
+                meta, parse_result, _thumb = await results_q.get()
+                handled += 1
+                if parse_result is None:  # cancelled -> als behandelt zaehlen
+                    if on_progress:
+                        on_progress(handled, total_found, f"Cancelled: {meta['file_path']}")
+                    continue
+                try:
+                    doc = await self._upsert_document(meta)
+                    if parse_result.error:
+                        doc.processing_status = "error"
+                        doc.summary = parse_result.error
+                        failed += 1
+                        logger.warning(
+                            "Parse error for %s: %s", meta["file_path"], parse_result.error
+                        )
+                    else:
+                        doc.full_text = parse_result.text
+                        doc.has_text = parse_result.has_text
+                        doc.page_count = parse_result.page_count
+                        doc.processing_status = "done"
+                        doc.indexed_at = datetime.now(timezone.utc).isoformat()
+                        done += 1
+
+                        # Filename-basierte Metadaten als Basis (AI kann unten ueberschreiben)
+                        meta_from_name = extract_from_filename(Path(meta["file_path"]).name)
+                        if meta_from_name.title and not doc.title:
+                            doc.title = meta_from_name.title
+                        if meta_from_name.year and not doc.year:
+                            doc.year = meta_from_name.year
+                        if meta_from_name.doc_type and not doc.doc_type:
+                            doc.doc_type = meta_from_name.doc_type
+                        if not doc.classification_source:
+                            doc.classification_source = "filename"
+
+                        try:
+                            await self._apply_classification(doc, parse_result.text)
+                        except Exception as cls_err:
+                            logger.warning(
+                                "Classification failed for '%s': %s",
+                                Path(meta["file_path"]).name, cls_err,
+                            )
+                    await self.db.commit()
+                    FACET_CACHE.invalidate()
+                except Exception as exc:
+                    logger.error("Unexpected error ingesting %s: %s", meta["file_path"], exc)
+                    failed += 1
+                    try:
+                        await self.db.rollback()
+                    except Exception:
+                        pass
+                if on_progress:
+                    on_progress(handled, total_found, f"Processed: {meta['file_path']}")
+            return done, failed
+
+        producers = [asyncio.create_task(produce(meta)) for meta in new_files]
+        writer = asyncio.create_task(write_all())
+
+        # return_exceptions=True: falls ein Producer trotz interner try/except
+        # unerwartet abstuerzt, wuerde der Writer sonst ewig auf die Queue warten.
+        # Fuer jeden abgestuerzten Producer wird ein Fehler-Ergebnis nachgereicht,
+        # damit der Writer die erwartete Anzahl (total_found) erreicht und terminiert.
+        gather_results = await asyncio.gather(*producers, return_exceptions=True)
+        for meta, res in zip(new_files, gather_results):
+            if isinstance(res, BaseException):
+                logger.error(
+                    "Producer crashed unexpectedly for %s: %s", meta["file_path"], res
+                )
+                await results_q.put((meta, ParseResult(error=str(res)), None))
+
+        processed, errors = await writer
 
         return IngestResult(
             total_found=total_found,
