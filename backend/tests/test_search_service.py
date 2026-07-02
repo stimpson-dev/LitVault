@@ -15,7 +15,6 @@ async def test_browse_empty_query_returns_all_non_excluded(db_session):
     assert result.total == 4
 
 
-@pytest.mark.xfail(reason="full_text-Leak, Fix in AP4", strict=True)
 async def test_browse_does_not_leak_full_text(db_session):
     result = await SearchService(db_session).search("", limit=10)
     for doc in result.documents:

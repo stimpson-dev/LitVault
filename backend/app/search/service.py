@@ -157,7 +157,12 @@ class SearchService:
             )
         else:
             select_sql = (
-                "SELECT d.*, NULL as title_snippet, NULL as text_snippet, 0 as rank"
+                "SELECT d.id, d.file_path, d.file_hash, d.file_type, d.file_size, d.mtime,"
+                " d.title, d.authors, d.year, d.doc_type, d.source, d.language,"
+                " d.summary, d.has_text, d.doi, d.processing_status,"
+                " d.classification_confidence, d.classification_source,"
+                " d.created_at, d.updated_at, d.indexed_at,"
+                " NULL as title_snippet, NULL as text_snippet, 0 as rank"
                 " FROM documents d"
                 " WHERE 1=1"
                 f" {filter_sql}"

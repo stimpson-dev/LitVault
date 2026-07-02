@@ -42,4 +42,34 @@ Jede URL wurde 3× mit `curl -s -o /dev/null -w "…"` gemessen. Angegeben wird 
 
 ---
 
-<!-- Weitere Messpunkte werden nach Tasks 10–13 und 15–17 hier ergänzt -->
+## Nach Task 10 (Browse ohne full_text)
+
+**Datum:** 2026-07-02  
+**Branch:** `feature/performance-umbau`  
+**Datenbankstand:** 2.398 Dokumente total (2.129 done, 5 error, 23 processing, 241 ohne Status)  
+**Crawl-Status bei Messung:** 1 Job „processing" (aktiv beim Start), kein offensichtlicher Einfluss auf Messwerte.  
+**Änderung:** `SELECT d.*` im Browse-Zweig durch explizite Spaltenliste ohne `full_text` ersetzt (`service.py:158-171`).
+
+### Ergebnisse
+
+| Endpunkt | URL | time_total Median (s) | size_download Median (bytes) |
+|----------|-----|-----------------------|------------------------------|
+| browse   | `GET /api/search?limit=100` | 0.793 | 64 385 |
+
+### Rohdaten
+
+| Lauf | Zeit (s)   | Bytes  |
+|------|------------|--------|
+| 1    | 0.803058   | 64 399 |
+| 2    | 0.792833   | 64 385 |
+| 3    | 0.772952   | 64 385 |
+
+### Beobachtungen
+
+- **Browse-Payload:** 64 385 Bytes (Median) statt 4 426 280 Bytes — **Reduktion um Faktor ~69 (98,5 %)**
+- **Antwortzeit:** 0.793 s Median (vs. 1.886 s Baseline) — ebenfalls deutlich schneller, da SQLite und Python weniger Daten serialisieren müssen.
+- Alle 30 Tests bestehen; der zuvor als `xfail(strict=True)` markierte Test `test_browse_does_not_leak_full_text` ist jetzt regulär grün.
+
+---
+
+<!-- Weitere Messpunkte werden nach Tasks 11–13 und 15–17 hier ergänzt -->
