@@ -6,6 +6,7 @@ from pathlib import Path
 from sqlalchemy import select
 
 from app.classification.ollama_client import OllamaClient
+from app.classification.service import detect_language
 from app.config import Settings
 from app.database import async_session_factory
 from app.documents.models import Document
@@ -78,18 +79,46 @@ async def process_job(job: Job, store: JobStore, settings: Settings, crawl_lock:
                                 )
                             )
                             docs = result.scalars().all()
-                            service = IngestService(session, settings, ollama=ollama)
+                            svc = IngestService(session, settings, ollama=ollama)
+
+                            # Semaphore limits concurrent Ollama HTTP requests.
+                            # Actual concurrency also depends on the Ollama server's
+                            # OLLAMA_NUM_PARALLEL env-var (default usually allows 2+).
+                            sem = asyncio.Semaphore(settings.classify_parallelism)
+
+                            async def classify_only(doc: Document):
+                                """HTTP + language detection run in parallel (no DB I/O)."""
+                                async with sem:
+                                    try:
+                                        lang = detect_language(doc.full_text)
+                                        # Pass full text; ClassificationService.classify()
+                                        # truncates internally (avoid double-slice here).
+                                        cls_result, tier = await svc.classifier.classify_document(
+                                            doc.full_text,
+                                            filename=Path(doc.file_path).name,
+                                        )
+                                        return doc, lang, cls_result, tier, None
+                                    except Exception as exc:
+                                        return doc, None, None, None, exc
+
                             classified = 0
-                            for i, doc in enumerate(docs):
-                                try:
-                                    await service._apply_classification(doc, doc.full_text)
-                                    await session.commit()
-                                    FACET_CACHE.invalidate()
-                                    classified += 1
-                                    store.update_progress(job.id, i + 1, len(docs), f"Classified: {doc.file_path}")
-                                except Exception as e:
-                                    logger.warning("Classification failed for doc %s: %s", doc.id, e)
-                                    await session.rollback()
+                            tasks = [asyncio.create_task(classify_only(d)) for d in docs]
+                            for i, fut in enumerate(asyncio.as_completed(tasks)):
+                                doc, lang, cls_result, tier, err = await fut
+                                if err is not None:
+                                    logger.warning(
+                                        "Classification failed for doc %s: %s", doc.id, err
+                                    )
+                                    continue
+                                # DB writes are strictly serial on the single session.
+                                doc.language = lang
+                                await svc.apply_classification_result(doc, cls_result, tier)
+                                await session.commit()
+                                FACET_CACHE.invalidate()
+                                classified += 1
+                                store.update_progress(
+                                    job.id, i + 1, len(docs), f"Classified: {doc.file_path}"
+                                )
                             store.complete_job(job.id, {"classified": classified, "total": len(docs)})
                     finally:
                         await ollama.close()

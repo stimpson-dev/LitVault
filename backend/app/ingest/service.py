@@ -38,18 +38,15 @@ class IngestService:
         self.settings = settings
         self.classifier = ClassificationService(ollama, max_chars=settings.classification_max_chars) if ollama else None
 
-    async def _apply_classification(self, doc: Document, text: str) -> None:
-        if self.classifier is None:
-            return
+    async def apply_classification_result(self, doc: Document, result, tier: str) -> None:
+        """Persistiert ein Klassifikationsergebnis (kein HTTP — darf nur seriell laufen).
 
-        # Detect language
-        doc.language = detect_language(text)
-
-        # Classify
-        result, tier = await self.classifier.classify_document(
-            text, filename=Path(doc.file_path).name
-        )
-
+        Darf niemals concurrent auf derselben AsyncSession aufgerufen werden.
+        Sprach-Erkennung (detect_language) ist nicht Teil dieser Methode; sie wird
+        entweder in _apply_classification (single-doc-Pfad) oder im parallelen
+        classify_only-Task des Workers (Batch-Pfad) ausgeführt und als doc.language
+        vor dem Aufruf dieser Methode gesetzt.
+        """
         # Update document fields
         if result.title:
             doc.title = result.title
@@ -104,6 +101,21 @@ class IngestService:
 
         if tier == "needs-review":
             logger.info("Document %s needs manual review (confidence: %.2f)", doc.file_path, result.confidence)
+
+    async def _apply_classification(self, doc: Document, text: str) -> None:
+        if self.classifier is None:
+            return
+
+        # Detect language (single-doc path: runs here; batch path: runs in parallel worker task)
+        doc.language = detect_language(text)
+
+        # Classify via Ollama (HTTP)
+        result, tier = await self.classifier.classify_document(
+            text, filename=Path(doc.file_path).name
+        )
+
+        # Persist (DB-only, serial)
+        await self.apply_classification_result(doc, result, tier)
 
     async def ingest_folder(
         self,
