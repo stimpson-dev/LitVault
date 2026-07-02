@@ -2,7 +2,7 @@ from app.classification.service import ClassificationService, CONFIDENCE_AUTO, C
 
 
 def _svc() -> ClassificationService:
-    return ClassificationService(ollama=None)  # type: ignore[arg-type]
+    return ClassificationService(ollama=None)
 
 def test_tier_auto():
     assert _svc().get_confidence_tier(CONFIDENCE_AUTO) == "auto"
