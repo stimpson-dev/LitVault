@@ -411,3 +411,45 @@ Begründung: Beste Ausfüllung (87.2 %) bei akzeptabler Geschwindigkeit (5.1 s/D
 - `config.example.json`: `ollama_model: "qwen3:4b"`, `ollama_num_ctx: 8192`, `classification_max_chars: 6000`.
 - Lokales `config.json`: analog (nicht committed).
 - **45 Tests grün** (40 vorher + 5 neue Fence-Strip-Tests).
+
+---
+
+## Task 20b: JSON-Retry-Fallback & qwen3.5-Nachtest
+
+**Datum:** 2026-07-03
+**Branch:** `feature/performance-umbau`
+**Hintergrund:** Task 20 ergab 100 % Fehlerquote für qwen3.5 mit `json_schema`-Format. Ein manueller Test deutete an, dass qwen3.5 mit `format: "json"` (String) möglicherweise JSON in Fences liefert. Außerdem: `num_predict: 512` verursachte 1 Truncation bei doc 728 (Warmarbeitsstähle-Stammbaum). Beide Punkte adressiert.
+
+### Änderungen
+
+**`backend/app/classification/ollama_client.py`:**
+- `num_predict: 512` → `num_predict: 1024`
+- Retry-Logik: Parse-Fehler nach dem Schema-Format-Aufruf löst jetzt (zusätzlich zu HTTP 500) einen Retry mit `format: "json"` aus. Struktur: Parse innerhalb des Format-Loops; `last_error` akkumuliert; `ValueError` erst nach Erschöpfung aller Formate.
+
+**`backend/tests/test_ollama_client_retry.py`** (neue Datei, 4 Tests):
+- TDD: Tests zuerst RED, dann GREEN durch Implementierung
+- Test 1: Schema-Format → Markdown → Retry → Fenced JSON → Erfolg, 2 POST-Aufrufe
+- Test 2: Beide Formate unparsebar → ValueError, 2 POST-Aufrufe
+- Test 3: Erstes Response valides JSON → Kein Retry, 1 POST-Aufruf
+- Test 4: `num_predict` muss 1024 im Request sein
+
+### Benchmark-Ergebnisse (2 Modelle × chars=6000 × 20 Docs, Ollama 0.31.1)
+
+| Modell | max_chars | ctx | s/Dok | Ausfüllung | Fehler |
+|--------|-----------|-----|-------|------------|--------|
+| qwen3:4b | 6000 | 8192 | 5.2 | 85.0 % | 0 |
+| qwen3.5:4b | 6000 | 8192 | 21.4 | 0.0 % | 20 |
+
+**qwen3:4b:** 0 Fehler (vs. 1 Fehler in Task 20 wegen Truncation) — `num_predict: 1024` behebt das Problem. Fill-Rate 85 % (andere Zufalls-Docs, ±2 % Varianz normal).
+
+**qwen3.5:4b:** 21.4 s/Dok (2 HTTP-Aufrufe durch Retry-Fallback, daher ~3× langsamer als Task 20). 20/20 Fehler. Root-Cause: qwen3.5:4b ignoriert SOWOHL `json_schema` ALS AUCH `"json"` Format-Parameter und gibt freies Markdown zurück (nicht gefenced) — weder Fence-Stripper noch json.loads können das parsen. Die Retry-Mechanik greift korrekt (20 Retry-Warnungen im Log), aber json-Format-Retry produziert ebenfalls Markdown.
+
+### Entscheidung
+
+**Entscheidungsregel:** qwen3.5:4b → Default nur wenn (a) Fehlerquote ≤ 5 % UND (b) Fill ≥ qwen3:4b+2 Pkt ODER gleiche Fill bei geringerer Zeit.
+
+**qwen3.5:4b Fehlerquote: 100 %** → Kriterium (a) NICHT erfüllt → **qwen3:4b bleibt Default. Keine Config-Änderung.**
+
+Der Retry-Fallback und num_predict-Fix werden trotzdem committet — sie sind für zukünftige Modelle wertvoll und lösen das bekannte Truncation-Problem.
+
+**Suite: 49 Tests grün** (45 vorher + 4 neue Retry-Tests).

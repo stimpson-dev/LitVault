@@ -25,21 +25,28 @@ class OllamaClient:
         self._client = httpx.AsyncClient(base_url=base_url, timeout=120.0)
 
     async def generate(self, prompt: str, json_schema: dict | None = None) -> dict:
-        # Use /api/chat with think:false to avoid Qwen3 thinking overhead
-        for fmt in ([json_schema, "json"] if json_schema else ["json"]):
+        # Use /api/chat with think:false to avoid Qwen3 thinking overhead.
+        # Two-format loop: first attempt uses json_schema (structured output),
+        # second attempt (fallback) uses plain "json" string.  The fallback is
+        # triggered either by HTTP 500 on the first attempt OR by a JSON parse
+        # failure — the latter handles models that ignore the schema constraint
+        # and return free Markdown instead (e.g. qwen3.5 with Ollama 0.31).
+        formats: list = [json_schema, "json"] if json_schema else ["json"]
+        last_error: Exception | None = None
+        raw: str = ""
+        for fmt in formats:
             body = {
                 "model": self.model,
                 "messages": [{"role": "user", "content": prompt}],
                 "stream": False,
                 "think": False,
-                "options": {"temperature": 0, "num_predict": 512, "num_ctx": self.num_ctx},
+                "options": {"temperature": 0, "num_predict": 1024, "num_ctx": self.num_ctx},
                 "format": fmt,
                 "keep_alive": -1,
             }
             try:
                 response = await self._client.post("/api/chat", json=body)
                 response.raise_for_status()
-                break
             except httpx.HTTPStatusError as exc:
                 if exc.response.status_code == 500 and fmt != "json":
                     logger.warning("Ollama schema format failed (500), retrying with plain JSON")
@@ -49,16 +56,17 @@ class OllamaClient:
             except httpx.HTTPError as exc:
                 logger.error("Ollama HTTP error: %s", exc)
                 raise
-
-        data = response.json()
-        raw = data["message"]["content"]
-
-        stripped = strip_markdown_fence(raw)
-        try:
-            return json.loads(stripped)
-        except json.JSONDecodeError as exc:
-            logger.error("Failed to parse Ollama response as JSON: %s", raw[:200])
-            raise ValueError(f"Ollama returned non-JSON response: {exc}") from exc
+            raw = response.json()["message"]["content"]
+            stripped = strip_markdown_fence(raw)
+            try:
+                return json.loads(stripped)
+            except json.JSONDecodeError as exc:
+                last_error = exc
+                if fmt != "json":
+                    logger.warning("Schema-Antwort nicht parsebar, Retry mit format='json'")
+                    continue
+        logger.error("Failed to parse Ollama response as JSON: %s", raw[:200])
+        raise ValueError(f"Ollama returned non-JSON response: {last_error}") from last_error
 
     async def check_health(self) -> bool:
         try:
