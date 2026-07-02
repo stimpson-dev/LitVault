@@ -22,3 +22,13 @@ dependencies = [
     "pymupdf-layout>=1.27.1",
     "easyocr>=1.7.2",
 ]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.24",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
