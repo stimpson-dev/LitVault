@@ -1,8 +1,20 @@
 import httpx
 import json
 import logging
+import re
 
 logger = logging.getLogger("litvault.ollama")
+
+_FENCE_RE = re.compile(r"^```(?:json)?\s*\n(.*?)\n```\s*$", re.DOTALL)
+
+
+def strip_markdown_fence(text: str) -> str:
+    """Remove optional ```json ... ``` fences that some Ollama models emit.
+
+    If the text is not fenced, it is returned unchanged.
+    """
+    m = _FENCE_RE.match(text.strip())
+    return m.group(1) if m else text
 
 
 class OllamaClient:
@@ -41,8 +53,9 @@ class OllamaClient:
         data = response.json()
         raw = data["message"]["content"]
 
+        stripped = strip_markdown_fence(raw)
         try:
-            return json.loads(raw)
+            return json.loads(stripped)
         except json.JSONDecodeError as exc:
             logger.error("Failed to parse Ollama response as JSON: %s", raw[:200])
             raise ValueError(f"Ollama returned non-JSON response: {exc}") from exc

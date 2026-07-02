@@ -328,3 +328,86 @@ Beide Bench-Sätze (20 Dokumente, `file_path LIKE '%ingest_bench_%'`) nach der M
 - Qualitäts-Gate (`_text_quality >= 0.15`) und OCR-Fallback bleiben unverändert hinter dem Switch.
 - `config.example.json` unberührt (Backend-only-Feld, kein UI-Bezug).
 - **38 Tests: grün** (keine Regression).
+
+---
+
+## Task 20: LLM-Benchmark & Modellentscheidung
+
+**Datum:** 2026-07-03  
+**Branch:** `feature/performance-umbau`  
+**Hinweis:** Ollama wurde im Rahmen dieser Task von **0.17.1 auf 0.31.1** aktualisiert (Ollama 0.17.1 behandelte Qwen3.5-Modelle im thinking-Modus inkorrekt — kein gültiger JSON-Output mit json_schema-Format).
+
+### Benchmark-Skript
+
+`backend/scripts/benchmark_llm.py` — 3 Modelle × 2 max_chars-Varianten = 6 Läufe, je 20 zufällig ausgewählte Dokumente aus der Produktions-DB (READ-ONLY), 3 FIELDS: title, doc_type, summary, categories, authors, year, tags.
+
+### Ergebnisse — Lauf 1 (Ollama 0.17.1, veraltet, nur zur Referenz)
+
+**Datum:** 2026-07-02
+
+| Modell | max_chars | ctx | s/Dok | Ausfüllung | Fehler |
+|--------|-----------|-----|-------|------------|--------|
+| qwen3:4b | 2000 | 4096 | 4.8 | 85.7 % | 0 |
+| qwen3:4b | 6000 | 8192 | 6.0 | 89.3 % | 0 |
+| qwen3.5:4b | 2000 | 4096 | 7.2 | 0.0 % | 20 |
+| qwen3.5:4b | 6000 | 8192 | 8.1 | 0.0 % | 20 |
+| qwen3.5:9b | 2000 | 4096 | 14.5 | 0.0 % | 20 |
+| qwen3.5:9b | 6000 | 8192 | 14.6 | 0.0 % | 20 |
+
+**Root-Cause Lauf 1:** Ollama 0.17.1 schickte Qwen3.5-Modelle in den „Thinking-Modus"; das Ergebnis war un-parsebares Markdown statt JSON. qwen3:4b funktionierte, weil das Modell kein Thinking unterstützt.
+
+### Ergebnisse — Lauf 2 (Ollama 0.31.1)
+
+**Datum:** 2026-07-03  
+**Änderung gegenüber Lauf 1:** Ollama 0.17.1 → 0.31.1 (Update). Zusätzlich: Markdown-Fence-Stripping-Patch in `ollama_client.py` (Safety-Net für ```json … ``` Antworten).
+
+| Modell | max_chars | ctx | s/Dok | Ausfüllung | Fehler |
+|--------|-----------|-----|-------|------------|--------|
+| qwen3:4b | 2000 | 4096 | 4.5 | 83.5 % | 1 |
+| qwen3:4b | 6000 | 8192 | 5.1 | 87.2 % | 1 |
+| qwen3.5:4b | 2000 | 4096 | 12.6 | 0.0 % | 20 |
+| qwen3.5:4b | 6000 | 8192 | 7.1 | 0.0 % | 20 |
+| qwen3.5:9b | 2000 | 4096 | 9.6 | 0.0 % | 20 |
+| qwen3.5:9b | 6000 | 8192 | 12.8 | 0.0 % | 20 |
+
+**Befund qwen3.5 (beide Modelle):** Auch mit Ollama 0.31.1 geben qwen3.5:4b und qwen3.5:9b mit `format: json_schema` freies Markdown zurück (nicht gefencet, sondern `**DOCUMENT TYPE**: bericht` usw.). Das Fence-Stripping-Patch greift bei dieser Fehlerart nicht. Root-Cause: Ollama 0.31.1 constraint das `json_schema`-Format für Qwen3.5-Modelle nicht effektiv; das Modell ignoriert die Strukturvorgabe.
+
+**Befund qwen3:4b:** Funktioniert zuverlässig. Der 1 Fehler pro 20 Docs (5 %) ist ein `num_predict=512`-Truncation bei einem ungewöhnlich langen Dokument (doc 728); beim Warmarbeitsstahlbericht wurde die JSON-Antwort mitten im Array abgeschnitten. Akzeptabler Fehler für Hintergrundklassifikation.
+
+**Hinweis qwen3.5:9b VRAM:** Spill ~28 % auf CPU-RAM (8 GB VRAM), aber mit Ollama 0.31.1 zeigt sich das nicht in extrem hohen Latenzzeiten (9.6 / 12.8 s/Dok) — trotzdem kein valider JSON-Output.
+
+### Entscheidungsmatrix
+
+| Kriterium | qwen3:4b ctx=4096 chars=2000 | qwen3:4b ctx=8192 chars=6000 | qwen3.5:4b chars=6000 | qwen3.5:9b chars=6000 |
+|-----------|------------------------------|------------------------------|-----------------------|-----------------------|
+| s/Dok | 4.5 | 5.1 | 7.1 | 12.8 |
+| Ausfüllung | 83.5 % | **87.2 %** | 0.0 % | 0.0 % |
+| Fehlerrate | 5 % | 5 % | 100 % | 100 % |
+| Akzeptabel (< 15 s) | ✓ | ✓ | – (100 % Fehler) | – (100 % Fehler) |
+| **Empfehlung** | – | **GEWÄHLT** | – | – |
+
+### Gewähltes Modell
+
+**`qwen3:4b`, `classification_max_chars: 6000`, `ollama_num_ctx: 8192`**
+
+Begründung: Beste Ausfüllung (87.2 %) bei akzeptabler Geschwindigkeit (5.1 s/Dok im Hintergrundworker). Die 0.6 s Mehrzeit gegenüber chars=2000 ist vertretbar; die 4 % höhere Fill-Rate reduziert manuelle Nacharbeit messbar.
+
+### Stichprobe (Qualitätscheck qwen3:4b chars=6000)
+
+3 Dokumente manuell gegen file_path und Textinhalt geprüft:
+
+| Doc-ID | file_path (Ende) | Extrahierter Titel | doc_type | Kategorien | conf | Bewertung |
+|--------|-----------------|-------------------|----------|------------|------|-----------|
+| 167 | `zako_7390_7391_es05-n.pdf` | Gearing Analysis Report | bericht | Tragbild/Kontakt/NVH, FEM/Spannungen | 0.85 | OK — Kontaktmuster-Analyse korrekt kategorisiert |
+| 2636 | `dew_stammbaum_warmarbeitsstaehle_de_140123_01.pdf` | Schematischer Stammbaum der Warmarbeitsstähle Thermodur | interne_notiz | Werkstoffe/Wärmebehandlung | 0.85 | SEHR GUT — Titel exakt extrahiert, Kategorie perfekt |
+| 2526 | `531 II.pdf` | FVA-Nr. 531 II Dynamische Koeffizienten | bericht | Verzahnungsgrundlagen, Kegelrad/Hypoid/Stirnrad | 0.95 | GUT — Titel/Typ perfekt; Kategorien leicht daneben (Radialgleitlager → Getriebe), akzeptabler Fehler |
+
+**Gesamtqualität:** 2/3 Dokumente exzellent, 1/3 korrekte Metadaten mit leicht falscher Kategorie.
+
+### Patches & Config-Änderungen
+
+- `backend/app/classification/ollama_client.py`: Markdown-Fence-Stripping-Helper `strip_markdown_fence()` hinzugefügt (Safety-Net für ```json … ``` Antworten — hilft bei qwen3:4b falls Ollama älteres Format sendet).
+- `backend/tests/test_ollama_fence_strip.py`: 5 Unit-Tests für die Stripping-Funktion (alle grün).
+- `config.example.json`: `ollama_model: "qwen3:4b"`, `ollama_num_ctx: 8192`, `classification_max_chars: 6000`.
+- Lokales `config.json`: analog (nicht committed).
+- **45 Tests grün** (40 vorher + 5 neue Fence-Strip-Tests).
