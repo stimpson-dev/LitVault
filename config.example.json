@@ -1,9 +1,6 @@
 {
   "watch_folders": [
-    "D:\\FVA-Berichte",
-    "D:\\Literatur",
-    "Z:\\",
-    "T:\\Technologie\\ZTV\\Literatur"
+    "C:/Pfad/zu/deinen/Dokumenten"
   ],
   "ollama_url": "http://localhost:11434",
   "ollama_model": "qwen3:4b",
@@ -12,5 +9,12 @@
   "db_path": "litvault.db",
   "thumbnails_dir": "thumbnails",
   "log_level": "INFO",
-  "poll_interval_seconds": 30
+  "poll_interval_seconds": 30,
+  "language": "de",
+  "theme": "light",
+  "start_page": "search",
+  "results_per_page": 100,
+  "default_sort": "date_asc",
+  "view_mode": "grid",
+  "show_favorites_sidebar": true
 }

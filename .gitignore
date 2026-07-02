@@ -32,3 +32,6 @@ Thumbs.db
 
 # uv
 backend/uv.lock
+
+# Lokale Konfiguration (Vorlage: config.example.json)
+/config.json
