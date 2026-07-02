@@ -103,12 +103,16 @@ def parse_pdf(path: Path) -> ParseResult:
 
         page_count = len(doc)
 
-        # Primary: use pymupdf4llm for best markdown/text extraction
-        try:
-            md_text = pymupdf4llm.to_markdown(str(path))
-        except Exception as exc:
-            logger.warning("pymupdf4llm failed for %s: %s", path, exc)
-            md_text = ""
+        # Primary extraction: plain (fast, C-level) or markdown (rich but GIL-bound)
+        from app.config import get_settings
+        if get_settings().pdf_extraction_mode == "markdown":
+            try:
+                md_text = pymupdf4llm.to_markdown(str(path))
+            except Exception as exc:
+                logger.warning("pymupdf4llm failed for %s: %s", path, exc)
+                md_text = ""
+        else:
+            md_text = "\n".join(page.get_text() for page in doc)
 
         # If primary extraction produced enough usable text, use it
         quality = _text_quality(md_text)

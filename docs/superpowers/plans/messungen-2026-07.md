@@ -273,3 +273,58 @@ Beide Bench-Sätze (20 Dokumente, `file_path LIKE '%ingest_bench_%'`) nach der M
 `PRAGMA integrity_check` = ok.
 
 <!-- Weitere Messpunkte werden nach Tasks 16–17 hier ergänzt -->
+
+---
+
+## Task 17: PDF-Extraktionsmodus — pymupdf4llm vs. plain get_text
+
+**Datum:** 2026-07-02  
+**Branch:** `feature/performance-umbau`  
+**Skript:** `backend/scripts/benchmark_parse.py`  
+**PDF-Quelle:** `D:\Literatur` (erste 10 nach alphabetischer Sortierung, 4–144 Seiten, Mix aus technischen Skripten und Büchern)
+
+### Benchmark 1: pymupdf4llm.to_markdown vs. plain page.get_text
+
+| Datei | Seiten | markdown (s) | plain (s) | Faktor |
+|-------|--------|-------------|-----------|--------|
+| 1994 Witzigmann - Beef [...] | 144 | 2.87 | 0.04 | 77.0× |
+| 20060919 Abschlussbericht.pdf | 12 | 0.76 | 0.01 | 68.5× |
+| Berechnung von Werkstoffdaten [...] | 4 | 0.68 | 0.01 | 64.7× |
+| Bruchmechanik1_1.pdf | 24 | 1.46 | 0.01 | 112.3× |
+| Elastizität, Viskosität [...] | 5 | 0.50 | 0.01 | 67.8× |
+| Extra_Info_44_Massivumformung [...] | 12 | 0.80 | 0.01 | 72.2× |
+| HTWK-Leipzig_Getriebe Grundlagen1.pdf | 78 | 0.83 | 0.02 | 42.9× |
+| Leifaden_Versagen_StAl [...] | 87 | 5.83 | 0.07 | 89.0× |
+| Plastische Verformung.pdf | 8 | 0.80 | 0.01 | 77.2× |
+| Plastizität und Bruchmechanik.pdf | 93 | 9.53 | 0.09 | 103.4× |
+
+**Gesamt markdown:** 24.06 s | **Gesamt plain:** 0.28 s | **Median Faktor: 74.6×**
+
+### Qualitätscheck Textlänge (erste 3 Dateien)
+
+| Datei | len_md | len_plain | plain/md | OK? |
+|-------|--------|-----------|---------|-----|
+| 1994 Witzigmann - Beef [...] | 0 | 143 | ∞ | PRÜFEN¹ |
+| 20060919 Abschlussbericht.pdf | 18 073 | 17 548 | 0.97× | JA |
+| Berechnung von Werkstoffdaten [...] | 14 259 | 15 019 | 1.05× | JA |
+
+¹ „Beef"-Buch (144 Seiten): pymupdf4llm liefert 0 Zeichen (mögliche Ursache: Scan/Encoding), plain liefert 143 Zeichen — ebenfalls leer (scanntes Buch). Beide Pfade versagen; OCR-Fallback würde greifen. Kein signifikanter Qualitätsverlust durch den Switch.
+
+### Benchmark 2: Thread-Skalierung plain get_text (seq vs. 3 Threads)
+
+| Variante | Dauer (s) | Speedup |
+|----------|-----------|---------|
+| SEQ (1 Thread) | 0.30 | 1.00× |
+| PAR (3 Threads) | 0.29 | 1.02× |
+
+**Befund:** Kein messbarer Thread-Speedup — plain extraction ist so schnell (⌀ 28 ms für 10 Dateien), dass Threading-Overhead dominiert. Für die Spec-Ziel-Frage (≥ 3× bei Text-PDFs) ist der richtige Vergleich markdown/plain Faktor 74.6×, nicht Threads. Task 15's Parallelarchitektur ist dennoch korrekt (serieller DB-Writer, parallele Parser); echter I/O-Overlap bei Netzlaufwerken oder GPU-OCR wird davon profitieren.
+
+### Entscheidung
+
+**Faktor 74.6× >> 3× → Config-Switch implementiert.**
+
+- `pdf_extraction_mode: str = "plain"` in `app/config.py` (Backend-only, analog zu `parse_timeout_seconds`)
+- `parse_pdf` in `app/ingest/parsers/pdf_parser.py`: Primärpfad wechselt auf `"\n".join(page.get_text() for page in doc)` wenn `pdf_extraction_mode == "plain"`, ansonsten bisheriger `pymupdf4llm.to_markdown`-Pfad.
+- Qualitäts-Gate (`_text_quality >= 0.15`) und OCR-Fallback bleiben unverändert hinter dem Switch.
+- `config.example.json` unberührt (Backend-only-Feld, kein UI-Bezug).
+- **38 Tests: grün** (keine Regression).

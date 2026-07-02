@@ -32,6 +32,7 @@ class Settings(BaseSettings):
     parse_timeout_seconds: int = 1200
     parse_parallelism: int = 3
     worker_count: int = 2
+    pdf_extraction_mode: str = "plain"  # "plain" | "markdown"
 
     model_config = SettingsConfigDict(
         json_file=CONFIG_PATH if CONFIG_PATH.exists() else None,
