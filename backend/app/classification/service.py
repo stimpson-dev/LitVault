@@ -49,7 +49,7 @@ def classify_by_filename(filename: str) -> dict | None:
 
 
 class ClassificationService:
-    def __init__(self, ollama: OllamaClient):
+    def __init__(self, ollama: OllamaClient | None = None):
         self.ollama = ollama
 
     async def classify(self, text: str, filename: str = "") -> ClassificationResult:
