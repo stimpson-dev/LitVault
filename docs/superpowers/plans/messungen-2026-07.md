@@ -165,4 +165,35 @@ Der Temp-B-Tree für ORDER BY auf dem Browse-Pfad entfällt vollständig.
 - **Facets warm (Cache):** 0.212 s — klares Signal, dass Task 12-Cache korrekt greift.
   Differenz cold/warm: 0.618 s (absolut) bzw. Faktor 3.9×.
 
+---
+
+## Nach Task 13b (snippet auf Seite begrenzt)
+
+**Datum:** 2026-07-02  
+**Branch:** `feature/performance-umbau`  
+**Datenbankstand:** 2 989 nicht-exkludierte Dokumente (2 719 done, 241 pending, 23 processing, 6 error); FTS-Matches für „getriebe": 1 101  
+**Crawl-Status:** Kein offensichtlicher Crawl-Einfluss; Läufe 2/3 nahezu identisch.  
+**Änderung:** FTS-Zweig in `SearchService.search` (`app/search/service.py`) als zweistufige Query: innere CTE `page(id)` ermittelt nur die IDs der Ergebnis-Seite (sortiert + `LIMIT/OFFSET`, ohne snippet), äußere Query berechnet `snippet()`/`bm25()` nur für diese Zeilen. Vorher materialisierte SQLite die `snippet()`-Ausdrücke für ALLE Matches vor dem Sortieren (⌀ `full_text` >100 KB pro Match).
+
+### Ergebnisse
+
+| Endpunkt | URL | time_total Median (s) | size_download Median (bytes) | vs. Endmessung AP4 |
+|----------|-----|-----------------------|------------------------------|--------------------|
+| search   | `GET /api/search?q=getriebe&limit=100` | 0.431 | 124 646 | -89 % Zeit (3.866 s → 0.431 s, Faktor ~9) |
+
+### Rohdaten
+
+| Lauf | Zeit (s)   | Bytes   | Bemerkung |
+|------|------------|---------|-----------|
+| 1    | 0.852557   | 124 646 | Facetten-Cache kalt |
+| 2    | 0.422666   | 124 646 | Cache warm |
+| 3    | 0.431360   | 124 646 | Cache warm |
+
+### Beobachtungen
+
+- **Median 0.431 s** gegenüber 3.866 s in der Endmessung AP4 — die FTS-Regression aus Task 13 ist behoben und die Suche ist nun auch deutlich schneller als die Baseline (2.485 s).
+- Lauf 1 (0.853 s) enthält den kalten Facetten-Cache und liegt damit knapp über der Brief-Erwartung von „unter ~0,8 s kalt"; warm liegen die Läufe bei ~0.42–0.43 s, klar unter der Erwartung.
+- `snippet()`/`bm25()` werden jetzt nur für die 100 Zeilen der Ergebnis-Seite berechnet statt für alle 1 101 Matches — konsistent mit der Controller-Diagnose (Query ohne snippet: 222 ms).
+- Antwortgröße unverändert (~125 KB) — Verhalten identisch, nur die Berechnungsreihenfolge geändert. Behavior-Lock-Tests (Pagination im FTS-Zweig, Snippet-Felder vorhanden) bestehen vor und nach dem Umbau; volle Suite: 37 passed.
+
 <!-- Weitere Messpunkte werden nach Tasks 15–17 hier ergänzt -->

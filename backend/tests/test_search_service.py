@@ -63,3 +63,17 @@ async def test_facets_with_fts_query(db_session):
     facets = await SearchService(db_session).get_facets(query="kegelrad")
     years = {f["name"] for f in facets["years"]}
     assert years == {2019, 2014}
+
+
+async def test_fts_pagination_offset(db_session):
+    svc = SearchService(db_session)
+    page1 = await svc.search("kegelrad", limit=1, offset=0)
+    page2 = await svc.search("kegelrad", limit=1, offset=1)
+    assert page1.total == 2 and page2.total == 2
+    assert len(page1.documents) == 1 and len(page2.documents) == 1
+    assert page1.documents[0]["id"] != page2.documents[0]["id"]
+
+
+async def test_fts_search_returns_snippets(db_session):
+    result = await SearchService(db_session).search("kegelrad", limit=10)
+    assert all("title_snippet" in d and "text_snippet" in d for d in result.documents)

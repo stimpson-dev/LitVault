@@ -135,8 +135,29 @@ class SearchService:
 
         if sanitized:
             params["query"] = sanitized
+            # Two-stage query: the inner subquery picks ONLY the ids of the
+            # result page (sorted + paginated, without snippet); the outer
+            # query computes snippet()/bm25() just for those rows. This avoids
+            # materializing snippet() for every FTS match before sorting.
+            if sort == "relevance":
+                # "rank" alias does not exist inside the subquery — sort by
+                # the bm25() expression there, by the alias outside.
+                inner_order = "bm25(documents_fts, 10.0, 5.0, 1.0, 2.0, 8.0)"
+                outer_order = "rank"
+            else:
+                inner_order = self.SORT_MAP.get(sort, "d.created_at DESC")
+                outer_order = inner_order
             select_sql = (
-                "SELECT d.id, d.file_path, d.file_hash, d.file_type, d.file_size, d.mtime,"
+                "WITH page(id) AS ("
+                " SELECT d.id"
+                " FROM documents_fts"
+                " JOIN documents d ON d.id = documents_fts.rowid"
+                " WHERE documents_fts MATCH :query"
+                f" {filter_sql}"
+                f" ORDER BY {inner_order}"
+                " LIMIT :limit OFFSET :offset"
+                ")"
+                " SELECT d.id, d.file_path, d.file_hash, d.file_type, d.file_size, d.mtime,"
                 " d.title, d.authors, d.year, d.doc_type, d.source, d.language,"
                 " d.summary, d.has_text, d.doi, d.processing_status,"
                 " d.classification_confidence, d.classification_source,"
@@ -145,11 +166,12 @@ class SearchService:
                 " snippet(documents_fts, 2, '<mark>', '</mark>', '...', 64) as text_snippet,"
                 " bm25(documents_fts, 10.0, 5.0, 1.0, 2.0, 8.0) as rank"
                 " FROM documents_fts"
-                " JOIN documents d ON d.id = documents_fts.rowid"
+                " JOIN page ON documents_fts.rowid = page.id"
+                " JOIN documents d ON d.id = page.id"
                 " WHERE documents_fts MATCH :query"
-                f" {filter_sql}"
-                f" ORDER BY {order_by}"
+                f" ORDER BY {outer_order}"
             )
+            already_paginated = True
             count_sql = (
                 "SELECT COUNT(*)"
                 " FROM documents_fts"
@@ -176,8 +198,9 @@ class SearchService:
                 " WHERE 1=1"
                 f" {filter_sql}"
             )
+            already_paginated = False
 
-        paginated_sql = select_sql + " LIMIT :limit OFFSET :offset"
+        paginated_sql = select_sql if already_paginated else select_sql + " LIMIT :limit OFFSET :offset"
         params["limit"] = limit
         params["offset"] = offset
 
