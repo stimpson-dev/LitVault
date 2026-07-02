@@ -370,6 +370,7 @@ async def rescan_document(
     doc.full_text = None
     doc.has_text = False
     await db.commit()
+    FACET_CACHE.invalidate()
 
     job = store.create_job(
         JobType.RESCAN,
@@ -406,6 +407,7 @@ async def rescan_all_errors(
         doc.full_text = None
         doc.has_text = False
     await db.commit()
+    FACET_CACHE.invalidate()
 
     queued = 0
     for doc in reachable:

@@ -140,6 +140,7 @@ class IngestService:
                 doc = await self._upsert_document(meta)
                 doc.processing_status = "processing"
                 await self.db.commit()
+                FACET_CACHE.invalidate()
 
                 result = await parse_document(Path(meta["file_path"]), meta["file_type"])
 

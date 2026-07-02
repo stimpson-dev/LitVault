@@ -313,11 +313,10 @@ class SearchService:
             rows = await self.db.execute(text(union_sql), params)
             for facet, name, count in rows:
                 facets[facet].append({"name": name, "count": count})
+            for key in ("categories", "doc_types", "file_types", "statuses"):
+                facets[key].sort(key=lambda e: e["count"], reverse=True)
+            facets["years"].sort(key=lambda e: e["name"], reverse=True)
+            FACET_CACHE.set(cache_key, facets)
         except Exception as exc:
             logger.error("Facet query failed: %s", exc)
-
-        for key in ("categories", "doc_types", "file_types", "statuses"):
-            facets[key].sort(key=lambda e: e["count"], reverse=True)
-        facets["years"].sort(key=lambda e: e["name"], reverse=True)
-        FACET_CACHE.set(cache_key, facets)
         return facets
