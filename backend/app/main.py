@@ -8,8 +8,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
-from app.database import engine, Base, ensure_columns, ensure_fts5
+from app.database import engine
 from app.documents import models  # noqa: F401 — register models with Base
+from app.migrations import run_startup_migrations
 from app.documents.router import router as documents_router
 from app.search.router import router as search_router
 from app.jobs.models import JobStore, JobType
@@ -18,16 +19,18 @@ from app.jobs.watcher import watch_folders
 from app.jobs.router import router as jobs_router, init_job_globals
 from app.settings.router import router as settings_router
 
+logging.getLogger("litvault").setLevel(logging.INFO)
+if not logging.getLogger("litvault").handlers:
+    _h = logging.StreamHandler()
+    _h.setFormatter(logging.Formatter("%(levelname)-5.5s [%(name)s] %(message)s"))
+    logging.getLogger("litvault").addHandler(_h)
 logger = logging.getLogger("litvault")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: create tables + FTS5
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-    await ensure_columns()
-    await ensure_fts5()
+    # Startup: run Alembic migrations (stamp + upgrade)
+    await asyncio.to_thread(run_startup_migrations)
 
     settings = get_settings()
     queue = asyncio.Queue()
