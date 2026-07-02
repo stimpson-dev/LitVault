@@ -26,8 +26,24 @@ export function TagEditor({ docId }: Props) {
   }, [docId]);
 
   useEffect(() => {
-    void fetchTags();
-  }, [fetchTags]);
+    let cancelled = false;
+    (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setLoading(true);
+      try {
+        const data = await getDocumentTags(docId);
+        if (!cancelled) setTags(data);
+      } catch {
+        if (!cancelled) setTags([]);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [docId]);
 
   const handleAdd = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;

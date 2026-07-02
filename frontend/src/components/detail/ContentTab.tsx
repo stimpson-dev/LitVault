@@ -12,20 +12,28 @@ export function ContentTab({ doc }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/documents/${doc.id}/text`)
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json() as Promise<{ text: string | null }>;
-      })
-      .then((data) => {
-        setText(data?.text ?? null);
-      })
-      .catch(() => {
-        setText(null);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
+    let cancelled = false;
+    (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/documents/${doc.id}/text`);
+        if (!res.ok) {
+          if (!cancelled) setText(null);
+          return;
+        }
+        const data = (await res.json()) as { text: string | null };
+        if (!cancelled) setText(data?.text ?? null);
+      } catch {
+        if (!cancelled) setText(null);
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [doc.id]);
 
   if (loading) {
