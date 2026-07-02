@@ -16,6 +16,7 @@ from app.documents.models import Category, Document, DocumentCategory, DocumentT
 from app.ingest.crawler import find_new_files
 from app.ingest.parsers import parse_document
 from app.ingest.thumbnail import generate_thumbnail_async
+from app.search.facet_cache import FACET_CACHE
 
 logger = logging.getLogger("litvault.ingest")
 
@@ -181,6 +182,7 @@ class IngestService:
                         logger.warning("Classification failed for '%s': %s", Path(meta["file_path"]).name, cls_err)
 
                 await self.db.commit()
+                FACET_CACHE.invalidate()
 
                 if on_progress:
                     on_progress(idx + 1, total_found, f"Processed: {meta['file_path']}")

@@ -1,9 +1,10 @@
 import logging
-from dataclasses import dataclass, field
+from dataclasses import astuple, dataclass, field
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.search.facet_cache import FACET_CACHE
 from app.search.sanitizer import sanitize_fts5_query_with_prefix as sanitize_fts5_query
 
 logger = logging.getLogger("litvault.search")
@@ -52,6 +53,7 @@ class SearchService:
         offset: int = 0,
         limit: int = 50,
         sort: str = "date_desc",
+        include_facets: bool = True,
     ) -> SearchResult:
         if filters is None:
             filters = SearchFilters()
@@ -191,7 +193,7 @@ class SearchService:
             documents = []
             total = 0
 
-        facets = await self.get_facets(query=query, filters=filters)
+        facets = await self.get_facets(query=query, filters=filters) if include_facets else {}
 
         return SearchResult(documents=documents, total=total, facets=facets)
 
@@ -202,6 +204,11 @@ class SearchService:
     ) -> dict:
         if filters is None:
             filters = SearchFilters()
+
+        cache_key = (query, astuple(filters))
+        cached = FACET_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
 
         sanitized = sanitize_fts5_query(query)
         params: dict = {}
@@ -312,4 +319,5 @@ class SearchService:
         for key in ("categories", "doc_types", "file_types", "statuses"):
             facets[key].sort(key=lambda e: e["count"], reverse=True)
         facets["years"].sort(key=lambda e: e["name"], reverse=True)
+        FACET_CACHE.set(cache_key, facets)
         return facets

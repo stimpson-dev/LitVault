@@ -8,6 +8,7 @@ export async function searchDocuments(
   offset = 0,
   limit = 25,
   sort = 'date_desc',
+  includeFacets = true,
 ): Promise<SearchResponse> {
   const params = new URLSearchParams();
   if (query) params.set('q', query);
@@ -28,6 +29,7 @@ export async function searchDocuments(
   params.set('offset', String(offset));
   params.set('limit', String(limit));
   if (sort) params.set('sort', sort);
+  if (!includeFacets) params.set('include_facets', 'false');
 
   const res = await fetch(`${BASE}/search?${params}`);
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);

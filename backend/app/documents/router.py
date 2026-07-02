@@ -12,6 +12,7 @@ from app.deps import get_db
 from app.documents.models import Document, Tag, DocumentTag, Favorite
 from app.jobs.models import JobType
 from app.jobs import router as jobs_router_mod
+from app.search.facet_cache import FACET_CACHE
 
 router = APIRouter(prefix="/api", tags=["documents"])
 
@@ -192,6 +193,7 @@ async def update_document(
         setattr(doc, field, value)
     doc.classification_source = "user"
     await db.commit()
+    FACET_CACHE.invalidate()
     await db.refresh(doc)
     return {
         "id": doc.id,
@@ -468,6 +470,7 @@ async def exclude_document(
         raise HTTPException(status_code=404, detail="Document not found")
     doc.excluded = True
     await db.commit()
+    FACET_CACHE.invalidate()
     return {"excluded": True, "id": doc_id}
 
 
@@ -486,6 +489,7 @@ async def exclude_batch(
     for doc in docs:
         doc.excluded = True
     await db.commit()
+    FACET_CACHE.invalidate()
     return {"excluded": len(docs)}
 
 
@@ -501,6 +505,7 @@ async def restore_document(
         raise HTTPException(status_code=404, detail="Document not found")
     doc.excluded = False
     await db.commit()
+    FACET_CACHE.invalidate()
     return {"excluded": False, "id": doc_id}
 
 
@@ -514,9 +519,11 @@ async def toggle_favorite(
     if existing is not None:
         await db.execute(delete(Favorite).where(Favorite.document_id == doc_id))
         await db.commit()
+        FACET_CACHE.invalidate()
         return {"favorited": False}
     db.add(Favorite(document_id=doc_id))
     await db.commit()
+    FACET_CACHE.invalidate()
     return {"favorited": True}
 
 
@@ -588,6 +595,7 @@ async def add_document_tag(
     if existing.scalar_one_or_none() is None:
         db.add(DocumentTag(document_id=doc_id, tag_id=tag.id, source="user"))
     await db.commit()
+    FACET_CACHE.invalidate()
     return {"id": tag.id, "name": tag.name}
 
 
@@ -604,4 +612,5 @@ async def remove_document_tag(
         )
     )
     await db.commit()
+    FACET_CACHE.invalidate()
     return {"deleted": True}

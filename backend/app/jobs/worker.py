@@ -11,6 +11,7 @@ from app.database import async_session_factory
 from app.documents.models import Document
 from app.ingest.service import IngestService
 from app.jobs.models import Job, JobStatus, JobStore, JobType
+from app.search.facet_cache import FACET_CACHE
 
 logger = logging.getLogger("litvault.worker")
 
@@ -62,6 +63,7 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
                                 service = IngestService(session, settings, ollama=ollama)
                                 await service._apply_classification(doc, doc.full_text)
                                 await session.commit()
+                                FACET_CACHE.invalidate()
                                 store.complete_job(job.id, {"classified": 1})
                             else:
                                 store.fail_job(job.id, f"Document {doc_id} not found or has no text")
@@ -81,6 +83,7 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
                                 try:
                                     await service._apply_classification(doc, doc.full_text)
                                     await session.commit()
+                                    FACET_CACHE.invalidate()
                                     classified += 1
                                     store.update_progress(job.id, i + 1, len(docs), f"Classified: {doc.file_path}")
                                 except Exception as e:
@@ -124,6 +127,7 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
 
                             store.complete_job(job.id, {"rescanned": True})
                         await session.commit()
+                        FACET_CACHE.invalidate()
                 case _:
                     store.fail_job(job.id, f"Unknown job type: {job.type}")
     except Exception as e:

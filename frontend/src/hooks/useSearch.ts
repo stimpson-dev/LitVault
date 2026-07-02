@@ -49,14 +49,14 @@ export function useSearch(options: UseSearchOptions = {}) {
     };
   }, [query, filters, resultsPerPage, sort]);
 
-  // Load more: append results
+  // Load more: append results, skip facets re-computation for performance
   const loadMore = useCallback(() => {
     const nextOffset = documents.length;
     setLoading(true);
-    searchDocuments(query, filters, nextOffset, resultsPerPage, sort)
+    searchDocuments(query, filters, nextOffset, resultsPerPage, sort, false)
       .then((data) => {
         setDocuments((prev) => [...prev, ...data.documents]);
-        setMeta({ total: data.total, facets: data.facets });
+        setMeta((prev) => ({ total: data.total, facets: prev?.facets ?? data.facets }));
         setOffset(nextOffset);
       })
       .catch(() => {})
