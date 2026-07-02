@@ -36,7 +36,7 @@ class IngestService:
     def __init__(self, db: AsyncSession, settings: Settings, ollama: OllamaClient | None = None) -> None:
         self.db = db
         self.settings = settings
-        self.classifier = ClassificationService(ollama) if ollama else None
+        self.classifier = ClassificationService(ollama, max_chars=settings.classification_max_chars) if ollama else None
 
     async def _apply_classification(self, doc: Document, text: str) -> None:
         if self.classifier is None:

@@ -20,7 +20,7 @@ class OllamaClient:
                 "messages": [{"role": "user", "content": prompt}],
                 "stream": False,
                 "think": False,
-                "options": {"temperature": 0, "num_predict": 2048, "num_ctx": self.num_ctx},
+                "options": {"temperature": 0, "num_predict": 512, "num_ctx": self.num_ctx},
                 "format": fmt,
                 "keep_alive": -1,
             }

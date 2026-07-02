@@ -49,8 +49,9 @@ def classify_by_filename(filename: str) -> dict | None:
 
 
 class ClassificationService:
-    def __init__(self, ollama: OllamaClient | None):
+    def __init__(self, ollama: OllamaClient | None, max_chars: int = MAX_CHARS):
         self.ollama = ollama
+        self.max_chars = max_chars
 
     async def classify(self, text: str, filename: str = "") -> ClassificationResult:
         word_count = len(text.split())
@@ -77,7 +78,7 @@ class ClassificationService:
                 confidence=0.0,
             )
 
-        truncated = truncate_text(text)
+        truncated = truncate_text(text, self.max_chars)
         prompt = build_prompt(truncated)
         schema = ClassificationResult.model_json_schema()
 
