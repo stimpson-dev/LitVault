@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext } from 'react';
 import { translations, type TranslationKey, type Language } from './translations';
 
 interface I18nContext {
@@ -27,6 +27,4 @@ export function LanguageProvider({
   );
 }
 
-export function useTranslation() {
-  return useContext(I18nCtx);
-}
+export { I18nCtx };

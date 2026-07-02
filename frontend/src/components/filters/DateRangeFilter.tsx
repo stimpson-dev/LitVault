@@ -15,11 +15,15 @@ export function DateRangeFilter({ createdAfter, createdBefore, onChange }: DateR
   const [localBefore, setLocalBefore] = useState(createdBefore ?? '')
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // Sync local state when props change (e.g. external clear)
-  useEffect(() => {
+  // Sync local state when props change (e.g. external clear) — render-time pattern
+  const [prevAfter, setPrevAfter] = useState(createdAfter)
+  const [prevBefore, setPrevBefore] = useState(createdBefore)
+  if (prevAfter !== createdAfter || prevBefore !== createdBefore) {
+    setPrevAfter(createdAfter)
+    setPrevBefore(createdBefore)
     setLocalAfter(createdAfter ?? '')
     setLocalBefore(createdBefore ?? '')
-  }, [createdAfter, createdBefore])
+  }
 
   useEffect(() => {
     if (!open) return

@@ -209,7 +209,6 @@ export function DocumentsPage() {
           documents={search.results?.documents}
           total={search.results?.total}
           loading={search.loading}
-          offset={search.offset}
           onLoadMore={search.loadMore}
           onSelect={handleDocSelect}
           viewMode={viewMode}

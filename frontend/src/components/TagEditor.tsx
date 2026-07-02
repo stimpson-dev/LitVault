@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { getDocumentTags, addDocumentTag, removeDocumentTag } from '@/lib/api';
 import type { TagItem } from '@/lib/types';
@@ -12,19 +12,22 @@ export function TagEditor({ docId }: Props) {
   const { t } = useTranslation();
   const [tags, setTags] = useState<TagItem[]>([]);
   const [newTag, setNewTag] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const fetchTags = () => {
-    setLoading(true);
-    getDocumentTags(docId)
-      .then((data) => setTags(data))
-      .catch(() => setTags([]))
-      .finally(() => setLoading(false));
-  };
+  const fetchTags = useCallback(async () => {
+    try {
+      const data = await getDocumentTags(docId);
+      setTags(data);
+    } catch {
+      setTags([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [docId]);
 
   useEffect(() => {
-    fetchTags();
-  }, [docId]);
+    void fetchTags();
+  }, [fetchTags]);
 
   const handleAdd = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== 'Enter') return;

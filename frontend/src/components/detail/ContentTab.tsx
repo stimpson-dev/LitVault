@@ -12,7 +12,6 @@ export function ContentTab({ doc }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
     fetch(`/api/documents/${doc.id}/text`)
       .then((res) => {
         if (!res.ok) return null;

@@ -11,7 +11,6 @@ interface ResultsListProps {
   documents?: SearchDocument[];
   total?: number;
   loading: boolean;
-  offset: number;
   onLoadMore: () => void;
   onSelect: (id: number) => void;
   viewMode?: AppSettings['view_mode'];
@@ -20,7 +19,7 @@ interface ResultsListProps {
   onFilterAdd?: FilterAddHandler;
 }
 
-export function ResultsList({ documents, total, loading, offset: _offset, onLoadMore, onSelect, viewMode = 'table', selectedIds, onToggleSelect, onFilterAdd }: ResultsListProps) {
+export function ResultsList({ documents, total, loading, onLoadMore, onSelect, viewMode = 'table', selectedIds, onToggleSelect, onFilterAdd }: ResultsListProps) {
   const { t } = useTranslation();
 
   if (loading && (!documents || documents.length === 0)) {

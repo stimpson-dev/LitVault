@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { listJobs, cancelJob } from '@/lib/api';
 import type { Job } from '@/lib/types';
 import { X, RefreshCw, XCircle, Loader2, CheckCircle2, AlertCircle, Clock, Ban } from 'lucide-react';
@@ -97,7 +97,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
     return cfg ? t(cfg.labelKey) : status;
   }
 
-  async function fetchJobs() {
+  const fetchJobs = useCallback(async () => {
     try {
       const fetched = await listJobs();
       setJobs(fetched);
@@ -105,9 +105,9 @@ export function JobProgress({ onClose }: JobProgressProps) {
     } catch {
       return [] as Job[];
     }
-  }
+  }, []);
 
-  function connectSSE(jobId: string) {
+  const connectSSE = useCallback((jobId: string) => {
     if (esRef.current) {
       esRef.current.close();
       esRef.current = null;
@@ -132,7 +132,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
         if (data.status === 'done' || data.status === 'error' || data.status === 'cancelled') {
           es.close();
           esRef.current = null;
-          fetchJobs();
+          void fetchJobs();
         }
       } catch {
         // ignore parse errors
@@ -143,33 +143,41 @@ export function JobProgress({ onClose }: JobProgressProps) {
       es.close();
       esRef.current = null;
     };
-  }
+  }, [fetchJobs]);
 
   useEffect(() => {
-    fetchJobs().then((fetched) => {
-      const processing = fetched.find((j) => j.status === 'processing');
-      if (processing) {
-        connectSSE(processing.id);
-      }
-    });
+    // Initial load: call API directly so no setState-bearing function is invoked from the effect body
+    void listJobs()
+      .then((fetched) => {
+        setJobs(fetched);
+        const processing = fetched.find((j) => j.status === 'processing');
+        if (processing) {
+          connectSSE(processing.id);
+        }
+      })
+      .catch(() => {});
 
-    intervalRef.current = setInterval(async () => {
-      const fetched = await fetchJobs();
-      const processing = fetched.find((j) => j.status === 'processing');
-      if (processing && !esRef.current) {
-        connectSSE(processing.id);
-      } else if (!processing && esRef.current) {
-        esRef.current.close();
-        esRef.current = null;
-        setActiveProgress(null);
-      }
+    intervalRef.current = setInterval(() => {
+      void listJobs()
+        .then((fetched) => {
+          setJobs(fetched);
+          const processing = fetched.find((j) => j.status === 'processing');
+          if (processing && !esRef.current) {
+            connectSSE(processing.id);
+          } else if (!processing && esRef.current) {
+            esRef.current.close();
+            esRef.current = null;
+            setActiveProgress(null);
+          }
+        })
+        .catch(() => {});
     }, 5000);
 
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       if (esRef.current) esRef.current.close();
     };
-  }, []);
+  }, [connectSSE]);
 
   const activeJob = jobs.find((j) => j.status === 'processing');
   const queuedJobs = jobs.filter((j) => j.status === 'queued');

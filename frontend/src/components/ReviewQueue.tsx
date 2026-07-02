@@ -14,10 +14,9 @@ interface Props {
 export function ReviewQueue({ onSelectDoc, onClose }: Props) {
   const { t } = useTranslation();
   const [documents, setDocuments] = useState<SearchDocument[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
     fetch(`${BASE}/documents?limit=200`)
       .then((res) => {
         if (!res.ok) throw new Error(`Fetch failed: ${res.status}`);
