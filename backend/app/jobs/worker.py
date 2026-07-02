@@ -16,7 +16,7 @@ from app.search.facet_cache import FACET_CACHE
 logger = logging.getLogger("litvault.worker")
 
 
-async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
+async def process_job(job: Job, store: JobStore, settings: Settings, crawl_lock: asyncio.Lock) -> None:
     job.status = JobStatus.PROCESSING
     job.started_at = datetime.now(timezone.utc).isoformat()
 
@@ -24,28 +24,29 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
         async with async_session_factory() as session:
             match job.type:
                 case JobType.CRAWL:
-                    service = IngestService(session, settings, ollama=None)
-                    folder = job.payload["folder"]
-                    store.update_progress(job.id, 0, 0, f"Scanning: {folder}")
+                    async with crawl_lock:  # nur ein Crawl gleichzeitig (Ordner-Exklusivität)
+                        service = IngestService(session, settings, ollama=None)
+                        folder = job.payload["folder"]
+                        store.update_progress(job.id, 0, 0, f"Scanning: {folder}")
 
-                    def on_progress(current: int, total: int, message: str) -> None:
-                        store.update_progress(job.id, current, total, message)
+                        def on_progress(current: int, total: int, message: str) -> None:
+                            store.update_progress(job.id, current, total, message)
 
-                    result = await service.ingest_folder(
-                        folder,
-                        on_progress=on_progress,
-                        is_cancelled=lambda: store.is_cancelled(job.id),
-                    )
-                    store.complete_job(
-                        job.id,
-                        {
-                            "total_found": result.total_found,
-                            "new_files": result.new_files,
-                            "processed": result.processed,
-                            "errors": result.errors,
-                            "skipped": result.skipped,
-                        },
-                    )
+                        result = await service.ingest_folder(
+                            folder,
+                            on_progress=on_progress,
+                            is_cancelled=lambda: store.is_cancelled(job.id),
+                        )
+                        store.complete_job(
+                            job.id,
+                            {
+                                "total_found": result.total_found,
+                                "new_files": result.new_files,
+                                "processed": result.processed,
+                                "errors": result.errors,
+                                "skipped": result.skipped,
+                            },
+                        )
                 case JobType.CLASSIFY:
                     ollama = OllamaClient(
                         base_url=settings.ollama_url,
@@ -135,11 +136,11 @@ async def process_job(job: Job, store: JobStore, settings: Settings) -> None:
         store.fail_job(job.id, str(e))
 
 
-async def worker_loop(queue: asyncio.Queue, store: JobStore, settings: Settings) -> None:
+async def worker_loop(queue: asyncio.Queue, store: JobStore, settings: Settings, crawl_lock: asyncio.Lock) -> None:
     while True:
         job = await queue.get()
         try:
-            await process_job(job, store, settings)
+            await process_job(job, store, settings, crawl_lock)
         except asyncio.CancelledError:
             raise
         except Exception as e:

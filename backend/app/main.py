@@ -38,7 +38,11 @@ async def lifespan(app: FastAPI):
     init_job_globals(queue, store)
 
     # Start background tasks
-    worker_task = asyncio.create_task(worker_loop(queue, store, settings))
+    crawl_lock = asyncio.Lock()
+    worker_tasks = [
+        asyncio.create_task(worker_loop(queue, store, settings, crawl_lock))
+        for _ in range(settings.worker_count)
+    ]
     watcher_task = asyncio.create_task(watch_folders(settings.watch_folders, queue, store))
 
     # Initial crawl: queue a crawl job for each watch folder on startup
@@ -48,14 +52,14 @@ async def lifespan(app: FastAPI):
             await queue.put(job)
             logger.info("Queued initial crawl for: %s", folder)
 
-    logger.info("LitVault started (worker + watcher active)")
+    logger.info("LitVault started (%d workers + watcher active)", settings.worker_count)
     yield
 
     # Shutdown: cancel everything immediately
     logger.info("Shutting down...")
-    worker_task.cancel()
-    watcher_task.cancel()
-    for task in (worker_task, watcher_task):
+    for task in (*worker_tasks, watcher_task):
+        task.cancel()
+    for task in (*worker_tasks, watcher_task):
         try:
             await asyncio.wait_for(task, timeout=2.0)
         except (asyncio.CancelledError, asyncio.TimeoutError):

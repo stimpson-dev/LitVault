@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     parse_timeout_seconds: int = 1200
     parse_parallelism: int = 3
+    worker_count: int = 2
 
     model_config = SettingsConfigDict(
         json_file=CONFIG_PATH if CONFIG_PATH.exists() else None,
