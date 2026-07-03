@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useDraggable } from '@/hooks/useDraggable';
 import { listJobs, cancelJob } from '@/lib/api';
 import type { Job } from '@/lib/types';
 import { X, RefreshCw, XCircle, Loader2, CheckCircle2, AlertCircle, Clock, Ban } from 'lucide-react';
@@ -73,6 +74,7 @@ function shortenMessage(msg: string) {
 
 export function JobProgress({ onClose }: JobProgressProps) {
   const { t } = useTranslation();
+  const { panelRef, style: dragStyle, dragging, handleProps } = useDraggable();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [activeProgress, setActiveProgress] = useState<{
     status: string;
@@ -195,14 +197,21 @@ export function JobProgress({ onClose }: JobProgressProps) {
 
   return (
     <div
+      ref={panelRef}
+      style={dragStyle}
       className="
         bg-zinc-900/95 backdrop-blur-xl border border-zinc-700/50
         rounded-xl shadow-2xl shadow-black/40 w-[500px] max-w-full
         ring-1 ring-white/[0.03]
       "
     >
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3">
+      {/* Header = Drag-Griff (Buttons bleiben klickbar, siehe useDraggable) */}
+      <div
+        {...handleProps}
+        className={`flex items-center justify-between px-4 py-3 select-none touch-none ${
+          dragging ? 'cursor-grabbing' : 'cursor-grab'
+        }`}
+      >
         <div className="flex items-center gap-2.5">
           {activeJob ? (
             <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
