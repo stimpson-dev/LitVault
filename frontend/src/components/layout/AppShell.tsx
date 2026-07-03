@@ -102,10 +102,10 @@ export function AppShell() {
 
         {/* Main content area */}
         <div className="flex-1 flex flex-col overflow-hidden transition-all duration-200">
-          {/* Dropdown panels */}
+          {/* Dropdown panels — z-40: ueber FilterBar/BulkEditor (sticky z-30), unter Navbar/Modals (z-50) */}
           {activeDropdown && (
-            <div className="relative z-30">
-              <div className="absolute top-0 left-0 z-40 mt-1 ml-4">
+            <div className="relative z-40">
+              <div className="absolute top-0 left-0 mt-1 ml-4">
                 {activeDropdown === 'jobs' && (
                   <JobProgress onClose={() => setActiveDropdown(null)} />
                 )}
