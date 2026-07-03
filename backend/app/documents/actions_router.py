@@ -117,6 +117,7 @@ async def rescan_no_text(
         doc.processing_status = "pending"
         doc.full_text = None
     await db.commit()
+    FACET_CACHE.invalidate()
 
     queued = 0
     for doc in reachable:

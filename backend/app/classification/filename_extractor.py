@@ -16,7 +16,7 @@ def extract_from_filename(filename: str) -> FilenameMetadata:
 
     # Extract year (4-digit number 1900-2099)
     year = None
-    year_match = re.search(r'\b(19\d{2}|20\d{2})\b', name)
+    year_match = re.search(r'(?<!\d)(19\d{2}|20\d{2})(?!\d)', name)
     if year_match:
         year = int(year_match.group(1))
 
