@@ -5,6 +5,22 @@
 - **Next Step**: M5 milestone verification
 - **Milestone**: M3 COMPLETE, M4 COMPLETE, M5 COMPLETE (all 4 phases done)
 
+## Milestone M6: Performance-Umbau (2026-07) — COMPLETE
+
+**Branch:** `feature/performance-umbau` | **Tasks:** 1–22 + 13b/20b | **Abgeschlossen:** 2026-07-03
+
+| AP | Tasks | Inhalt |
+|----|-------|--------|
+| AP1 | 1–4 | Branch-Setup, DB-Schema, Config-Refaktor, Migrations-Framework |
+| AP2 | 5–8 | Frontend-Umbau (React Query, Router, State-Architektur) |
+| AP3 | 9 | Benchmark-Infrastruktur + Baseline-Messung |
+| AP4 | 10–13 + 13b | Browse ohne full_text (4,4 MB → 64 KB), FTS-Sanitizer, Facet-Cache (TTL), DB-Indexes, FTS-Snippet-CTE (Faktor ~9×) |
+| AP5 | 15–17 | Ingest-Parallelarchitektur (Producer/Consumer + 1 DB-Writer), PDF-Extraktionsmodus plain (Faktor 74,6×) |
+| AP6 | 18–20 + 20b | Ollama 0.17.1 → 0.31.1, LLM-Benchmark (qwen3:4b gewählt, 5,1 s/Dok, 85–87 %), JSON-Retry-Fallback, num_predict 1024 |
+| AP7 | 21–22 | Code-Review, Gesamtverifikation, Messprotokoll-Abschluss |
+
+**Endzustand:** 56 Tests grün, tsc exit 0, ESLint 0 Errors; alle Smoke-Endpoints 200; Browse-Payload 64 KB (Ziel < 100 KB ✓), Suche warm 0,43 s, Crawl-Faktor 74,6× (Ziel ≥ 3× ✓).
+
 ## Milestone M5: UI Redesign (Phases 9-12)
 Inspired by paperless-ngx patterns. Four phases:
 - Phase 9: App Shell + Sidebar — COMPLETE

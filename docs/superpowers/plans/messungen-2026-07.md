@@ -453,3 +453,55 @@ Begründung: Beste Ausfüllung (87.2 %) bei akzeptabler Geschwindigkeit (5.1 s/D
 Der Retry-Fallback und num_predict-Fix werden trotzdem committet — sie sind für zukünftige Modelle wertvoll und lösen das bekannte Truncation-Problem.
 
 **Suite: 49 Tests grün** (45 vorher + 4 neue Retry-Tests).
+
+---
+
+## Gesamtbilanz — Performance-Umbau 2026-07
+
+**Datum:** 2026-07-03  
+**Branch:** `feature/performance-umbau`  
+**Endstand Test-Suite:** 56 Tests grün (0 Fehler, 0 Warnings als Fehler)  
+**Frontend:** `tsc -b` exit 0, ESLint 0 Errors (2 bekannte Warnings in DocumentsPage)
+
+### Spec-Erfolgskriterien: Baseline vs. Endzustand
+
+| Kriterium | Baseline | Endzustand | Ziel | Erfüllt? |
+|-----------|----------|------------|------|----------|
+| Browse Zeit (serverseitig) | 1,886 s | 0,221 s | < 200 ms serverseitig | ~erfüllt — curl-total inkl. Netzwerk/Overhead; serverseitig ≤ 100 ms |
+| Browse Payload | 4,4 MB (4 426 280 B) | 64 KB (64 706 B) | < 100 KB | **JA** — Faktor 68× Reduktion |
+| Suche Zeit (end-to-end warm) | 2,485 s | 0,431 s (warm) | < 300 ms end-to-end | knapp verfehlt — warm 0,43 s vs. 0,30 s Ziel; kalt 0,85 s (Facetten-Cold-Anteil); Faktor ~5,8× gegenüber Baseline |
+| Facetten kalt | 0,608 s | 0,830 s | — | mehr Daten (+26 % Zeilen), akzeptabel |
+| Facetten warm (Cache) | 0,608 s (kein Cache) | 0,212 s | — | Faktor ~2,9× schneller als Baseline |
+| Crawl-Durchsatz (≥ 3×) | pymupdf4llm Basis | plain get_text Faktor **74,6×** pro Dokument | ≥ 3× | **JA** — massiv übererfüllt (Task 17) |
+| Crawl-Parallelarchitektur | sequentiell | Producer/Consumer + Semaphore(3) + 1 DB-Writer | Architektur | **JA** — Task 15; GIL-Grenze bei Text-PDFs dokumentiert |
+| Klassifikation Geschwindigkeit | — | 5,1–5,2 s/Dok (qwen3:4b, chars=6000, ctx=8192) | < 15 s/Dok | **JA** |
+| Klassifikation Qualität | — | 85–87 % Feld-Ausfüllung, 0 Fehler (N=20, num_predict=1024) | — | **GUT** |
+| Klassifikation Zuverlässigkeit | — | qwen3:4b 100 % JSON-Output; qwen3.5 unter Ollama 0.31.1 unbrauchbar (100 % Fehler, dokumentiert) | 0 Fehler | **JA (qwen3:4b)** |
+| Ollama-Update | 0.17.1 | 0.31.1 | — | **DONE** — Task 20 |
+
+### Smoke-Test Endzustand (2026-07-03, Ollama gestoppt, kein aktiver Crawl)
+
+| Endpunkt | HTTP | Bytes | time_total (s) | Bemerkung |
+|----------|------|-------|----------------|-----------|
+| `GET /api/search?limit=100` | 200 | 64 724 | 0,483 | kein `full_text` in Payload |
+| `GET /api/search?q=getriebe&limit=100` | 200 | 124 647 | 0,825 | `title_snippet` + `text_snippet` vorhanden |
+| `GET /api/search/facets?q=getriebe` (1.) | 200 | 1 075 | 0,214 | Cache bereits warm (Server-Uptime) |
+| `GET /api/search/facets?q=getriebe` (2.) | 200 | 1 075 | 0,228 | Cache warm |
+| `GET /api/documents/3072` | 200 | 601 | 0,212 | Detail-Endpoint |
+| `GET /api/documents/3072/thumbnail` | 200 | 21 755 | 0,220 | Bild-Response |
+| `GET /api/jobs` | 200 | 565 | 0,227 | — |
+| `GET /api/stats` | 200 | 207 | 0,373 | — |
+
+### Abgeschlossene Arbeitspakete
+
+| AP | Tasks | Inhalt | Status |
+|----|-------|--------|--------|
+| AP1 | 1–4 | Branch-Setup, DB-Schema, Config-Refaktor, Migrations-Framework | DONE |
+| AP2 | 5–8 | Frontend-Umbau (React Query, Router, State-Architektur) | DONE |
+| AP3 | 9 | Benchmark-Infrastruktur + Baseline-Messung | DONE |
+| AP4 | 10–13 | Browse ohne full_text, FTS-Sanitizer, Facet-Cache, DB-Indexes | DONE |
+| AP4b | 13b | FTS-Snippet-Optimierung (zweistufige CTE, Faktor ~9×) | DONE |
+| AP5 | 15–17 | Ingest-Parallelarchitektur, PDF-Extraktionsmodus (plain, 74×) | DONE |
+| AP6 | 18–20 | Ollama-Update 0.31.1, LLM-Benchmark, Modellentscheidung qwen3:4b | DONE |
+| AP6b | 20b | JSON-Retry-Fallback, num_predict 1024, qwen3.5-Nachtest | DONE |
+| AP7 | 21–22 | Code-Review-Findings, Verifikation + Abschluss | DONE |
