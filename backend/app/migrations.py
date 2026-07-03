@@ -6,10 +6,11 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine, inspect
 
+from app.database import DB_PATH
+
 logger = logging.getLogger("litvault.migrations")
 
 BACKEND_DIR = Path(__file__).parent.parent
-DB_PATH = BACKEND_DIR / "litvault.db"
 
 
 def _alembic_config() -> Config:

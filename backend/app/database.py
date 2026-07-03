@@ -3,7 +3,20 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import event
 from pathlib import Path
 
-DB_PATH = Path(__file__).parent.parent / "litvault.db"
+from app.config import get_settings
+
+BACKEND_DIR = Path(__file__).parent.parent
+
+
+def resolve_db_path(db_path: str) -> Path:
+    """Absolute Pfade unveraendert; relative relativ zu backend/ (nicht cwd),
+    damit der Default "litvault.db" weiterhin backend/litvault.db trifft."""
+    p = Path(db_path)
+    return p if p.is_absolute() else BACKEND_DIR / p
+
+
+# Zum Importzeitpunkt aufgeloest — eine db_path-Aenderung greift erst nach Neustart.
+DB_PATH = resolve_db_path(get_settings().db_path)
 DATABASE_URL = f"sqlite+aiosqlite:///{DB_PATH}"
 
 engine = create_async_engine(
