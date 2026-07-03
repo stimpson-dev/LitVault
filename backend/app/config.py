@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     parse_parallelism: int = 3
     worker_count: int = 2
     pdf_extraction_mode: str = "plain"  # "plain" | "markdown"
-    classification_max_chars: int = 2000
+    classification_max_chars: int = 6000
     classify_parallelism: int = 2
 
     model_config = SettingsConfigDict(

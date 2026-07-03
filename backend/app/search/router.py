@@ -115,7 +115,7 @@ async def export_search_csv(
         created_before=created_before,
     )
     service = SearchService(db)
-    result = await service.search(q, filters, offset=0, limit=1000)
+    result = await service.search(q, filters, offset=0, limit=1000, include_facets=False)
 
     output = io.StringIO()
     writer = csv.writer(output)

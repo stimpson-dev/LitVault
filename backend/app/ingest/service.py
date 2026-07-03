@@ -51,10 +51,14 @@ class IngestService:
         if result.title:
             doc.title = result.title
         doc.authors = json.dumps(result.authors) if result.authors else None
-        doc.year = result.year
-        doc.doc_type = result.doc_type
-        doc.source = result.source
-        doc.summary = result.summary
+        if result.year:
+            doc.year = result.year
+        if result.doc_type:
+            doc.doc_type = result.doc_type
+        if result.source:
+            doc.source = result.source
+        if result.summary:
+            doc.summary = result.summary
         doc.classification_confidence = result.confidence
         doc.classification_source = "ai"
 

@@ -26,6 +26,7 @@ if not logging.getLogger("litvault").handlers:
     _h = logging.StreamHandler()
     _h.setFormatter(logging.Formatter("%(levelname)-5.5s [%(name)s] %(message)s"))
     logging.getLogger("litvault").addHandler(_h)
+    logging.getLogger("litvault").propagate = False
 logger = logging.getLogger("litvault")
 
 

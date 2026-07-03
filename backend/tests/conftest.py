@@ -15,6 +15,10 @@ FTS_SETUP = [
         INSERT INTO documents_fts(rowid, title, authors, full_text, summary, file_path)
         VALUES (new.id, new.title, new.authors, new.full_text, new.summary, new.file_path);
     END""",
+    """CREATE TRIGGER documents_ad AFTER DELETE ON documents BEGIN
+        INSERT INTO documents_fts(documents_fts, rowid, title, authors, full_text, summary, file_path)
+        VALUES ('delete', old.id, old.title, old.authors, old.full_text, old.summary, old.file_path);
+    END""",
     """CREATE TRIGGER documents_au AFTER UPDATE ON documents BEGIN
         INSERT INTO documents_fts(documents_fts, rowid, title, authors, full_text, summary, file_path)
         VALUES ('delete', old.id, old.title, old.authors, old.full_text, old.summary, old.file_path);
