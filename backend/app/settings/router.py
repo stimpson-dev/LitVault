@@ -3,6 +3,7 @@ from pathlib import Path
 from fastapi import APIRouter
 from pydantic import BaseModel
 from app.config import get_settings, CONFIG_PATH
+from app.jobs.watcher import WATCHER
 
 router = APIRouter(prefix="/api/settings", tags=["settings"])
 
@@ -57,5 +58,15 @@ async def update_settings(body: SettingsUpdate) -> dict:
 
     # Clear settings cache
     get_settings.cache_clear()
+
+    # watch_folders greifen sonst erst beim nächsten App-Start: Watcher neu
+    # starten und neue, existierende Ordner sofort crawlen.
+    if "watch_folders" in updates:
+        old_folders = set(WATCHER.folders)
+        new_folders = [f for f in updates["watch_folders"] if f]
+        await WATCHER.start(new_folders)
+        for folder in new_folders:
+            if folder not in old_folders and Path(folder).is_dir():
+                await WATCHER.queue_crawl(folder)
 
     return _settings_response(get_settings())

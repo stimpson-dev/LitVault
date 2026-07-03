@@ -11,6 +11,48 @@ logger = logging.getLogger("litvault.watcher")
 SUPPORTED_EXTENSIONS = {".pdf", ".docx", ".pptx"}
 
 
+class WatcherManager:
+    """Hält den laufenden Watcher-Task, damit Settings-Änderungen ihn ohne
+    App-Neustart ersetzen können (der Task selbst liest die Ordnerliste nur
+    einmal beim Start)."""
+
+    def __init__(self) -> None:
+        self._task: asyncio.Task | None = None
+        self._queue: asyncio.Queue | None = None
+        self._store: JobStore | None = None
+        self._folders: list[str] = []
+
+    def init(self, queue: asyncio.Queue, store: JobStore) -> None:
+        self._queue = queue
+        self._store = store
+
+    @property
+    def folders(self) -> list[str]:
+        return list(self._folders)
+
+    async def start(self, folders: list[str]) -> None:
+        await self.stop()
+        self._folders = list(folders)
+        self._task = asyncio.create_task(watch_folders(self._folders, self._queue, self._store))
+
+    async def stop(self) -> None:
+        if self._task is not None:
+            self._task.cancel()
+            try:
+                await asyncio.wait_for(self._task, timeout=2.0)
+            except (asyncio.CancelledError, asyncio.TimeoutError):
+                pass
+            self._task = None
+
+    async def queue_crawl(self, folder: str) -> None:
+        job = self._store.create_job(JobType.CRAWL, {"folder": folder})
+        await self._queue.put(job)
+        logger.info("Queued crawl for newly configured folder: %s", folder)
+
+
+WATCHER = WatcherManager()
+
+
 async def watch_folders(folders: list[str], queue: asyncio.Queue, store: JobStore) -> None:
     if not folders:
         logger.info("No watch folders configured, watcher idle")

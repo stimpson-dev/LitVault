@@ -17,7 +17,7 @@ from app.documents.actions_router import router as document_actions_router
 from app.search.router import router as search_router
 from app.jobs.models import JobStore, JobType
 from app.jobs.worker import worker_loop
-from app.jobs.watcher import watch_folders
+from app.jobs.watcher import WATCHER
 from app.jobs.router import router as jobs_router, init_job_globals
 from app.settings.router import router as settings_router
 
@@ -46,7 +46,8 @@ async def lifespan(app: FastAPI):
         asyncio.create_task(worker_loop(queue, store, settings, crawl_lock))
         for _ in range(settings.worker_count)
     ]
-    watcher_task = asyncio.create_task(watch_folders(settings.watch_folders, queue, store))
+    WATCHER.init(queue, store)
+    await WATCHER.start(settings.watch_folders)
 
     # Initial crawl: queue a crawl job for each watch folder on startup
     for folder in settings.watch_folders:
@@ -60,9 +61,10 @@ async def lifespan(app: FastAPI):
 
     # Shutdown: cancel everything immediately
     logger.info("Shutting down...")
-    for task in (*worker_tasks, watcher_task):
+    await WATCHER.stop()
+    for task in worker_tasks:
         task.cancel()
-    for task in (*worker_tasks, watcher_task):
+    for task in worker_tasks:
         try:
             await asyncio.wait_for(task, timeout=2.0)
         except (asyncio.CancelledError, asyncio.TimeoutError):

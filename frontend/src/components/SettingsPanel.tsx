@@ -42,6 +42,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     getAppSettings()
@@ -64,13 +65,14 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
   async function handleSave() {
     setSaving(true);
+    setSaveError(false);
     try {
       const updated = await updateAppSettings(draft);
       setSettings(updated);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch {
-      // silently fail
+      setSaveError(true);
     } finally {
       setSaving(false);
     }
@@ -299,6 +301,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
 
         <div className="flex items-center justify-end gap-2 mt-6 pt-4 border-t border-zinc-800">
           {saved && <span className="text-green-400 text-sm mr-2">{t('settings.saved')}</span>}
+          {saveError && <span className="text-red-400 text-sm mr-2">{t('settings.saveError')}</span>}
           <button
             type="button"
             onClick={onClose}
