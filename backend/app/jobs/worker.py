@@ -3,7 +3,7 @@ import logging
 from datetime import datetime, timezone
 from pathlib import Path
 
-from sqlalchemy import select
+from sqlalchemy import inspect, select
 
 from app.classification.ollama_client import OllamaClient
 from app.classification.service import detect_language
@@ -86,39 +86,60 @@ async def process_job(job: Job, store: JobStore, settings: Settings, crawl_lock:
                             # OLLAMA_NUM_PARALLEL env-var (default usually allows 2+).
                             sem = asyncio.Semaphore(settings.classify_parallelism)
 
-                            async def classify_only(doc: Document):
+                            async def classify_only(doc: Document, text: str, filename: str):
                                 """HTTP + language detection run in parallel (no DB I/O)."""
                                 async with sem:
                                     try:
-                                        lang = detect_language(doc.full_text)
+                                        lang = detect_language(text)
                                         # Pass full text; ClassificationService.classify()
                                         # truncates internally (avoid double-slice here).
                                         cls_result, tier = await svc.classifier.classify_document(
-                                            doc.full_text,
-                                            filename=Path(doc.file_path).name,
+                                            text,
+                                            filename=filename,
                                         )
                                         return doc, lang, cls_result, tier, None
                                     except Exception as exc:
                                         return doc, None, None, None, exc
 
                             classified = 0
-                            tasks = [asyncio.create_task(classify_only(d)) for d in docs]
+                            # full_text/file_path werden EAGER beim Task-Erzeugen gelesen:
+                            # Nach einem session.rollback() im seriellen Teil (Fehlerpfad
+                            # unten) wären alle Instanzen expired und sync-Attributzugriff
+                            # im Task würde außerhalb des Greenlet-Kontexts fehlschlagen.
+                            tasks = [
+                                asyncio.create_task(
+                                    classify_only(d, d.full_text, Path(d.file_path).name)
+                                )
+                                for d in docs
+                            ]
                             for i, fut in enumerate(asyncio.as_completed(tasks)):
                                 doc, lang, cls_result, tier, err = await fut
+                                # session.rollback() expired ALLE Instanzen der Session.
+                                # Vor jedem Attributzugriff (doc.id etc.) explizit im
+                                # Greenlet-Kontext nachladen, sonst MissingGreenlet.
+                                if inspect(doc).expired:
+                                    await session.refresh(doc)
                                 if err is not None:
                                     logger.warning(
                                         "Classification failed for doc %s: %s", doc.id, err
                                     )
                                     continue
                                 # DB writes are strictly serial on the single session.
-                                doc.language = lang
-                                await svc.apply_classification_result(doc, cls_result, tier)
-                                await session.commit()
-                                FACET_CACHE.invalidate()
-                                classified += 1
-                                store.update_progress(
-                                    job.id, i + 1, len(docs), f"Classified: {doc.file_path}"
-                                )
+                                try:
+                                    doc.language = lang
+                                    await svc.apply_classification_result(doc, cls_result, tier)
+                                    await session.commit()
+                                    FACET_CACHE.invalidate()
+                                    classified += 1
+                                    store.update_progress(
+                                        job.id, i + 1, len(docs), f"Classified: {doc.file_path}"
+                                    )
+                                except Exception as e:
+                                    logger.warning(
+                                        "Classification apply failed for doc %s: %s", doc.id, e
+                                    )
+                                    await session.rollback()
+                                    continue
                             store.complete_job(job.id, {"classified": classified, "total": len(docs)})
                     finally:
                         await ollama.close()
