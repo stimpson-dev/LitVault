@@ -35,6 +35,76 @@ class SearchResult:
     facets: dict
 
 
+def build_filter_clauses(filters: SearchFilters) -> tuple[list[str], dict]:
+    """Metadaten-Filter als SQL-Fragmente (Alias d) + Bind-Parameter."""
+    params: dict = {}
+    filter_clauses: list[str] = ["AND d.excluded = 0"]
+
+    if filters.doc_type is not None:
+        filter_clauses.append("AND d.doc_type = :doc_type")
+        params["doc_type"] = filters.doc_type
+
+    if filters.year_min is not None:
+        filter_clauses.append("AND d.year >= :year_min")
+        params["year_min"] = filters.year_min
+
+    if filters.year_max is not None:
+        filter_clauses.append("AND d.year <= :year_max")
+        params["year_max"] = filters.year_max
+
+    if filters.language is not None:
+        filter_clauses.append("AND d.language = :language")
+        params["language"] = filters.language
+
+    if filters.author is not None:
+        filter_clauses.append("AND d.authors LIKE :author_pattern")
+        params["author_pattern"] = f"%{filters.author}%"
+
+    if filters.has_text is not None:
+        filter_clauses.append("AND d.has_text = :has_text")
+        params["has_text"] = filters.has_text
+
+    if filters.classification_source is not None:
+        filter_clauses.append("AND d.classification_source = :classification_source")
+        params["classification_source"] = filters.classification_source
+
+    if filters.file_type is not None:
+        filter_clauses.append("AND d.file_type = :file_type")
+        params["file_type"] = filters.file_type
+
+    if filters.processing_status is not None:
+        filter_clauses.append("AND d.processing_status = :processing_status")
+        params["processing_status"] = filters.processing_status
+
+    if filters.file_size_min is not None:
+        filter_clauses.append("AND d.file_size >= :file_size_min")
+        params["file_size_min"] = filters.file_size_min
+
+    if filters.file_size_max is not None:
+        filter_clauses.append("AND d.file_size <= :file_size_max")
+        params["file_size_max"] = filters.file_size_max
+
+    if filters.created_after is not None:
+        filter_clauses.append("AND d.created_at >= :created_after")
+        params["created_after"] = filters.created_after
+
+    if filters.created_before is not None:
+        filter_clauses.append("AND d.created_at <= :created_before")
+        params["created_before"] = filters.created_before
+
+    if filters.category is not None:
+        filter_clauses.append(
+            "AND d.id IN ("
+            "SELECT dc.document_id FROM document_categories dc "
+            "JOIN categories c ON c.id = dc.category_id "
+            "WHERE c.name = :category"
+            ")"
+        )
+        params["category"] = filters.category
+
+    return filter_clauses, params
+
+
 class SearchService:
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -59,71 +129,7 @@ class SearchService:
             filters = SearchFilters()
 
         sanitized = sanitize_fts5_query(query)
-        params: dict = {}
-        filter_clauses: list[str] = ["AND d.excluded = 0"]
-
-        # Build metadata filter clauses (always applied to the documents table alias d)
-        if filters.doc_type is not None:
-            filter_clauses.append("AND d.doc_type = :doc_type")
-            params["doc_type"] = filters.doc_type
-
-        if filters.year_min is not None:
-            filter_clauses.append("AND d.year >= :year_min")
-            params["year_min"] = filters.year_min
-
-        if filters.year_max is not None:
-            filter_clauses.append("AND d.year <= :year_max")
-            params["year_max"] = filters.year_max
-
-        if filters.language is not None:
-            filter_clauses.append("AND d.language = :language")
-            params["language"] = filters.language
-
-        if filters.author is not None:
-            filter_clauses.append("AND d.authors LIKE :author_pattern")
-            params["author_pattern"] = f"%{filters.author}%"
-
-        if filters.has_text is not None:
-            filter_clauses.append("AND d.has_text = :has_text")
-            params["has_text"] = filters.has_text
-
-        if filters.classification_source is not None:
-            filter_clauses.append("AND d.classification_source = :classification_source")
-            params["classification_source"] = filters.classification_source
-
-        if filters.file_type is not None:
-            filter_clauses.append("AND d.file_type = :file_type")
-            params["file_type"] = filters.file_type
-
-        if filters.processing_status is not None:
-            filter_clauses.append("AND d.processing_status = :processing_status")
-            params["processing_status"] = filters.processing_status
-
-        if filters.file_size_min is not None:
-            filter_clauses.append("AND d.file_size >= :file_size_min")
-            params["file_size_min"] = filters.file_size_min
-
-        if filters.file_size_max is not None:
-            filter_clauses.append("AND d.file_size <= :file_size_max")
-            params["file_size_max"] = filters.file_size_max
-
-        if filters.created_after is not None:
-            filter_clauses.append("AND d.created_at >= :created_after")
-            params["created_after"] = filters.created_after
-
-        if filters.created_before is not None:
-            filter_clauses.append("AND d.created_at <= :created_before")
-            params["created_before"] = filters.created_before
-
-        if filters.category is not None:
-            filter_clauses.append(
-                "AND d.id IN ("
-                "SELECT dc.document_id FROM document_categories dc "
-                "JOIN categories c ON c.id = dc.category_id "
-                "WHERE c.name = :category"
-                ")"
-            )
-            params["category"] = filters.category
+        filter_clauses, params = build_filter_clauses(filters)
 
         filter_sql = " ".join(filter_clauses)
 
@@ -234,70 +240,7 @@ class SearchService:
             return cached
 
         sanitized = sanitize_fts5_query(query)
-        params: dict = {}
-        filter_clauses: list[str] = ["AND d.excluded = 0"]
-
-        if filters.doc_type is not None:
-            filter_clauses.append("AND d.doc_type = :doc_type")
-            params["doc_type"] = filters.doc_type
-
-        if filters.year_min is not None:
-            filter_clauses.append("AND d.year >= :year_min")
-            params["year_min"] = filters.year_min
-
-        if filters.year_max is not None:
-            filter_clauses.append("AND d.year <= :year_max")
-            params["year_max"] = filters.year_max
-
-        if filters.language is not None:
-            filter_clauses.append("AND d.language = :language")
-            params["language"] = filters.language
-
-        if filters.author is not None:
-            filter_clauses.append("AND d.authors LIKE :author_pattern")
-            params["author_pattern"] = f"%{filters.author}%"
-
-        if filters.has_text is not None:
-            filter_clauses.append("AND d.has_text = :has_text")
-            params["has_text"] = filters.has_text
-
-        if filters.classification_source is not None:
-            filter_clauses.append("AND d.classification_source = :classification_source")
-            params["classification_source"] = filters.classification_source
-
-        if filters.file_type is not None:
-            filter_clauses.append("AND d.file_type = :file_type")
-            params["file_type"] = filters.file_type
-
-        if filters.processing_status is not None:
-            filter_clauses.append("AND d.processing_status = :processing_status")
-            params["processing_status"] = filters.processing_status
-
-        if filters.file_size_min is not None:
-            filter_clauses.append("AND d.file_size >= :file_size_min")
-            params["file_size_min"] = filters.file_size_min
-
-        if filters.file_size_max is not None:
-            filter_clauses.append("AND d.file_size <= :file_size_max")
-            params["file_size_max"] = filters.file_size_max
-
-        if filters.created_after is not None:
-            filter_clauses.append("AND d.created_at >= :created_after")
-            params["created_after"] = filters.created_after
-
-        if filters.created_before is not None:
-            filter_clauses.append("AND d.created_at <= :created_before")
-            params["created_before"] = filters.created_before
-
-        if filters.category is not None:
-            filter_clauses.append(
-                "AND d.id IN ("
-                "SELECT dc.document_id FROM document_categories dc "
-                "JOIN categories c ON c.id = dc.category_id "
-                "WHERE c.name = :category"
-                ")"
-            )
-            params["category"] = filters.category
+        filter_clauses, params = build_filter_clauses(filters)
 
         filter_sql = " ".join(filter_clauses)
 
