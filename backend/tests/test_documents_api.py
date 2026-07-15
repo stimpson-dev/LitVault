@@ -19,6 +19,7 @@ EXPECTED_PATHS = [
     "/api/documents/{doc_id}/open",
     "/api/documents/{doc_id}/classify",
     "/api/documents/classify-batch",
+    "/api/documents/embed-batch",
     "/api/documents/{doc_id}/rescan",
     "/api/documents/rescan-errors",
     "/api/documents/rescan-no-text",

@@ -50,6 +50,19 @@ async def classify_batch(db: AsyncSession = Depends(get_db)) -> dict:
     return {"job_id": job.id, "status": "queued"}
 
 
+@router.post("/documents/embed-batch")
+async def embed_batch() -> dict:
+    """Queue embedding generation for all documents with text (new/stale)."""
+    queue = jobs_router_mod._queue
+    store = jobs_router_mod._store
+    if queue is None or store is None:
+        raise HTTPException(status_code=503, detail="Job system not initialized")
+
+    job = store.create_job(JobType.EMBED, {})
+    await queue.put(job)
+    return {"job_id": job.id, "status": "queued"}
+
+
 @router.post("/documents/rescan-errors")
 async def rescan_all_errors(
     db: AsyncSession = Depends(get_db),

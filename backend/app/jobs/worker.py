@@ -179,6 +179,63 @@ async def process_job(job: Job, store: JobStore, settings: Settings, crawl_lock:
                             store.complete_job(job.id, {"rescanned": True})
                         await session.commit()
                         FACET_CACHE.invalidate()
+                case JobType.EMBED:
+                    from sqlalchemy import delete
+
+                    from app.documents.models import Embedding
+                    from app.search import embedding_service as emb_mod
+                    from app.search.embedding_service import build_embed_text, vector_to_blob
+                    from app.search.vector_index import VECTOR_INDEX
+
+                    emb_service = emb_mod.get_embedding_service()
+                    result = await session.execute(
+                        select(Document)
+                        .outerjoin(Embedding, Embedding.document_id == Document.id)
+                        .where(
+                            Document.has_text.is_(True),
+                            Document.excluded == False,
+                            (Embedding.document_id.is_(None))
+                            | (Embedding.model != settings.embedding_model),
+                        )
+                    )
+                    docs = result.scalars().all()
+                    # Texte EAGER aufbauen — keine ORM-Attributzugriffe mehr im
+                    # Loop noetig (rollback wuerde Instanzen expiren, s. CLASSIFY).
+                    items = [
+                        (d.id, build_embed_text(d.title, d.summary, d.full_text,
+                                                settings.embedding_max_chars), d.file_path)
+                        for d in docs
+                    ]
+                    embedded = 0
+                    errors = 0
+                    try:
+                        for i, (item_id, embed_text_str, file_path) in enumerate(items):
+                            if store.is_cancelled(job.id):
+                                break
+                            try:
+                                vecs = await emb_service.encode_documents([embed_text_str])
+                                await session.execute(
+                                    delete(Embedding).where(Embedding.document_id == item_id)
+                                )
+                                session.add(Embedding(
+                                    document_id=item_id,
+                                    model=settings.embedding_model,
+                                    vector=vector_to_blob(vecs[0]),
+                                ))
+                                await session.commit()
+                                embedded += 1
+                            except emb_mod.ModelLoadError:
+                                raise  # fatal — ohne Modell ist der ganze Job sinnlos
+                            except Exception as exc:
+                                logger.warning("Embedding failed for doc %s: %s", item_id, exc)
+                                await session.rollback()
+                                errors += 1
+                            store.update_progress(job.id, i + 1, len(items), f"Embedded: {file_path}")
+                        store.complete_job(job.id, {
+                            "embedded": embedded, "errors": errors, "total": len(items),
+                        })
+                    finally:
+                        VECTOR_INDEX.invalidate()
                 case _:
                     store.fail_job(job.id, f"Unknown job type: {job.type}")
     except Exception as e:

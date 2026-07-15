@@ -8,6 +8,7 @@ class JobType(str, Enum):
     CRAWL = "crawl"
     CLASSIFY = "classify"
     RESCAN = "rescan"
+    EMBED = "embed"
 
 
 class JobStatus(str, Enum):
