@@ -1,7 +1,7 @@
 import logging
 from dataclasses import astuple, dataclass, field
 
-from sqlalchemy import text
+from sqlalchemy import bindparam, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.search.facet_cache import FACET_CACHE
@@ -230,14 +230,20 @@ class SearchService:
         self,
         query: str = "",
         filters: SearchFilters | None = None,
+        candidate_ids: list[int] | None = None,
     ) -> dict:
         if filters is None:
             filters = SearchFilters()
 
+        empty: dict = {"categories": [], "doc_types": [], "years": [], "file_types": [], "statuses": []}
+        if candidate_ids is not None and len(candidate_ids) == 0:
+            return empty
+
         cache_key = (query, astuple(filters))
-        cached = FACET_CACHE.get(cache_key)
-        if cached is not None:
-            return cached
+        if candidate_ids is None:
+            cached = FACET_CACHE.get(cache_key)
+            if cached is not None:
+                return cached
 
         sanitized = sanitize_fts5_query(query)
         filter_clauses, params = build_filter_clauses(filters)
@@ -245,7 +251,10 @@ class SearchService:
         filter_sql = " ".join(filter_clauses)
 
         cte = ""
-        if sanitized:
+        if candidate_ids is not None:
+            fts_subquery = "AND d.id IN :candidate_ids"
+            params["candidate_ids"] = candidate_ids
+        elif sanitized:
             params["query"] = sanitized
             cte = ("WITH matched(rowid) AS ("
                    "SELECT documents_fts.rowid FROM documents_fts WHERE documents_fts MATCH :query) ")
@@ -274,15 +283,19 @@ class SearchService:
              " GROUP BY d.processing_status"),
         ])
 
-        facets: dict = {"categories": [], "doc_types": [], "years": [], "file_types": [], "statuses": []}
+        facets: dict = {k: [] for k in empty}
         try:
-            rows = await self.db.execute(text(union_sql), params)
+            stmt = text(union_sql)
+            if candidate_ids is not None:
+                stmt = stmt.bindparams(bindparam("candidate_ids", expanding=True))
+            rows = await self.db.execute(stmt, params)
             for facet, name, count in rows:
                 facets[facet].append({"name": name, "count": count})
             for key in ("categories", "doc_types", "file_types", "statuses"):
                 facets[key].sort(key=lambda e: e["count"], reverse=True)
             facets["years"].sort(key=lambda e: e["name"], reverse=True)
-            FACET_CACHE.set(cache_key, facets)
+            if candidate_ids is None:
+                FACET_CACHE.set(cache_key, facets)
         except Exception as exc:
             logger.error("Facet query failed: %s", exc)
         return facets

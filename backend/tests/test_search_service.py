@@ -77,3 +77,16 @@ async def test_fts_pagination_offset(db_session):
 async def test_fts_search_returns_snippets(db_session):
     result = await SearchService(db_session).search("kegelrad", limit=10)
     assert all("title_snippet" in d and "text_snippet" in d for d in result.documents)
+
+
+async def test_facets_for_candidate_ids(db_session):
+    # IDs 1 (kegelrad/bericht) und 3 (norm) aus dem conftest-Seed
+    facets = await SearchService(db_session).get_facets(candidate_ids=[1, 3])
+    doc_types = {f["name"]: f["count"] for f in facets["doc_types"]}
+    assert doc_types == {"bericht": 1, "norm": 1}
+
+
+async def test_facets_for_empty_candidate_ids(db_session):
+    facets = await SearchService(db_session).get_facets(candidate_ids=[])
+    assert facets["doc_types"] == []
+    assert facets["categories"] == []
