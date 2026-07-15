@@ -1,3 +1,7 @@
+import pytest
+
+from app.search import embedding_service
+from tests.fake_embeddings import FakeEmbeddingService
 import numpy as np
 
 from app.search.embedding_service import build_embed_text, vector_to_blob, blob_to_vector
@@ -38,3 +42,47 @@ def test_vector_to_blob_casts_float64():
 def test_embedding_max_chars_default():
     from app.config import Settings
     assert Settings.model_fields["embedding_max_chars"].default == 8000
+
+
+async def test_fake_encoder_is_deterministic_and_normalized():
+    fake = FakeEmbeddingService()
+    v1 = await fake.encode_query("kegelrad tragfähigkeit")
+    v2 = await fake.encode_query("kegelrad tragfähigkeit")
+    np.testing.assert_array_equal(v1, v2)
+    assert abs(float(np.linalg.norm(v1)) - 1.0) < 1e-5
+
+
+async def test_fake_encoder_similar_texts_score_higher():
+    fake = FakeEmbeddingService()
+    docs = await fake.encode_documents([
+        "kegelrad tragfähigkeit untersuchung",
+        "beton brückenbau statik",
+    ])
+    q = await fake.encode_query("kegelrad tragfähigkeit")
+    scores = docs @ q
+    assert scores[0] > scores[1]
+
+
+def test_get_embedding_service_singleton(monkeypatch):
+    monkeypatch.setattr(embedding_service, "_service", None)
+    s1 = embedding_service.get_embedding_service()
+    s2 = embedding_service.get_embedding_service()
+    assert s1 is s2
+    from app.config import get_settings
+    assert s1.model_name == get_settings().embedding_model
+
+
+def test_encode_uses_prefixes(monkeypatch):
+    captured: list[list[str]] = []
+    svc = embedding_service.EmbeddingService("dummy")
+
+    def fake_encode(texts):
+        captured.append(texts)
+        return np.zeros((len(texts), 4), dtype=np.float32)
+
+    monkeypatch.setattr(svc, "_encode", fake_encode)
+    import asyncio
+    asyncio.run(svc.encode_documents(["doc eins"]))
+    asyncio.run(svc.encode_query("frage"))
+    assert captured[0] == ["search_document: doc eins"]
+    assert captured[1] == ["search_query: frage"]

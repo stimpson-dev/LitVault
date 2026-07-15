@@ -16,6 +16,7 @@ dependencies = [
     "pytesseract",
     "langdetect",
     "sentence-transformers",
+    "einops",
     "ollama",
     "watchfiles",
     "openpyxl",
