@@ -74,3 +74,32 @@ async def test_embed_job_reembeds_on_model_change(db_session, fake_embeddings, r
     models = (await db_session.execute(
         text("SELECT DISTINCT model FROM embeddings"))).scalars().all()
     assert models == [get_settings().embedding_model]
+
+
+async def test_rescan_deletes_embedding(db_session, fake_embeddings, run_embed_job, monkeypatch, tmp_path):
+    from app.jobs import worker as worker_mod
+    from app.ingest.parsers.models import ParseResult
+
+    await run_embed_job()
+    before = (await db_session.execute(
+        text("SELECT COUNT(*) FROM embeddings WHERE document_id = 1"))).scalar()
+    assert before == 1
+
+    async def fake_parse(path, file_type):
+        return ParseResult(text="neuer text nach rescan", has_text=True, error=None)
+
+    import app.ingest.parsers as parsers_mod
+    monkeypatch.setattr(parsers_mod, "parse_document", fake_parse)
+
+    store = JobStore()
+    f = tmp_path / "kegelrad.pdf"
+    f.write_text("dummy")
+    job = store.create_job(JobType.RESCAN, {
+        "document_id": 1, "file_path": str(f), "file_type": "pdf",
+    })
+    await worker_mod.process_job(job, store, get_settings(), asyncio.Lock())
+    assert job.error is None
+
+    after = (await db_session.execute(
+        text("SELECT COUNT(*) FROM embeddings WHERE document_id = 1"))).scalar()
+    assert after == 0

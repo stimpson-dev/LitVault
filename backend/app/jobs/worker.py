@@ -48,6 +48,14 @@ async def process_job(job: Job, store: JobStore, settings: Settings, crawl_lock:
                                 "skipped": result.skipped,
                             },
                         )
+                        # Neue/geaenderte Dokumente automatisch embedden
+                        if result.processed > 0:
+                            from app.jobs import router as jobs_router_mod
+
+                            if jobs_router_mod._queue is not None:
+                                embed_job = store.create_job(JobType.EMBED, {})
+                                await jobs_router_mod._queue.put(embed_job)
+                                logger.info("Auto-queued EMBED job after crawl")
                 case JobType.CLASSIFY:
                     ollama = OllamaClient(
                         base_url=settings.ollama_url,
@@ -175,6 +183,17 @@ async def process_job(job: Job, store: JobStore, settings: Settings, crawl_lock:
                                 doc.year = fname_meta.year
                             if fname_meta.doc_type and not doc.doc_type:
                                 doc.doc_type = fname_meta.doc_type
+
+                            # Text hat sich geaendert -> Embedding ist veraltet
+                            from sqlalchemy import delete as sa_delete
+
+                            from app.documents.models import Embedding
+                            from app.search.vector_index import VECTOR_INDEX
+
+                            await session.execute(
+                                sa_delete(Embedding).where(Embedding.document_id == doc.id)
+                            )
+                            VECTOR_INDEX.invalidate()
 
                             store.complete_job(job.id, {"rescanned": True})
                         await session.commit()
