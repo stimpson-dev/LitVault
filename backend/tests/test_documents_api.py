@@ -11,6 +11,7 @@ EXPECTED_PATHS = [
     "/api/crawl",
     "/api/documents",
     "/api/documents/duplicates",
+    "/api/documents/{doc_id}/similar",
     "/api/documents/{doc_id}",
     "/api/documents/{doc_id}/thumbnail",
     "/api/documents/{doc_id}/file",

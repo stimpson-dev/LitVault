@@ -141,6 +141,52 @@ async def get_duplicates(
     ]
 
 
+@router.get("/documents/{doc_id}/similar")
+async def get_similar_documents(
+    doc_id: int,
+    limit: int = 10,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """Inhaltlich ähnliche Dokumente (Cosine über Dokument-Embeddings)."""
+    from app.config import get_settings
+    from app.search.embedding_service import blob_to_vector
+    from app.search.vector_index import VECTOR_INDEX
+
+    result = await db.execute(select(Document.id).where(Document.id == doc_id))
+    if result.scalar_one_or_none() is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    settings = get_settings()
+    row = await db.execute(
+        text("SELECT vector FROM embeddings WHERE document_id = :id AND model = :model"),
+        {"id": doc_id, "model": settings.embedding_model},
+    )
+    blob = row.scalar_one_or_none()
+    if blob is None:
+        return {"embedded": False, "similar": []}
+
+    # Puffer für Selbstausschluss + excluded-Filter
+    candidates = await VECTOR_INDEX.top_k(
+        db, blob_to_vector(blob), limit + 20, settings.embedding_model
+    )
+    scores = {cid: score for cid, score in candidates if cid != doc_id}
+    if not scores:
+        return {"embedded": True, "similar": []}
+
+    from sqlalchemy import bindparam
+    stmt = text(
+        "SELECT d.id, d.title, d.authors, d.year, d.doc_type, d.file_path,"
+        " d.file_type, d.summary"
+        " FROM documents d WHERE d.id IN :ids AND d.excluded = 0"
+    ).bindparams(bindparam("ids", expanding=True))
+    rows = await db.execute(stmt, {"ids": list(scores)})
+    docs = [dict(r._mapping) for r in rows]
+    for doc in docs:
+        doc["rank"] = scores[doc["id"]]
+    docs.sort(key=lambda d: d["rank"], reverse=True)
+    return {"embedded": True, "similar": docs[:limit]}
+
+
 @router.get("/documents/{doc_id}")
 async def get_document(
     doc_id: int,
