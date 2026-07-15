@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     worker_count: int = 2
     pdf_extraction_mode: str = "plain"  # "plain" | "markdown"
     classification_max_chars: int = 6000
+    embedding_max_chars: int = 8000
     classify_parallelism: int = 2
 
     model_config = SettingsConfigDict(

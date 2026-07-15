@@ -7,6 +7,7 @@
   "ollama_num_ctx": 8192,
   "classification_max_chars": 6000,
   "pdf_extraction_mode": "plain",
+  "embedding_max_chars": 8000,
   "parse_parallelism": 3,
   "worker_count": 2,
   "classify_parallelism": 2,
