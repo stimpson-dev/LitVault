@@ -50,6 +50,7 @@ async def search(
     offset: int = 0,
     limit: int = 50,
     sort: str = "date_desc",
+    mode: str = "fts",
     include_facets: bool = True,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
@@ -69,8 +70,19 @@ async def search(
         created_after=created_after,
         created_before=created_before,
     )
-    service = SearchService(db)
-    result = await service.search(q, filters, offset, limit, sort=sort, include_facets=include_facets)
+    if mode == "semantic" and q:
+        from app.search.embedding_service import ModelLoadError
+        from app.search.semantic import SemanticSearchService
+
+        try:
+            result = await SemanticSearchService(db).search(
+                q, filters, offset, limit, include_facets=include_facets
+            )
+        except ModelLoadError as exc:
+            raise HTTPException(status_code=503, detail=f"Embedding-Modell nicht verfügbar: {exc}")
+    else:
+        service = SearchService(db)
+        result = await service.search(q, filters, offset, limit, sort=sort, include_facets=include_facets)
     return {
         "documents": result.documents,
         "total": result.total,
