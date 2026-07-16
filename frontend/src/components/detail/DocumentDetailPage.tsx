@@ -271,7 +271,7 @@ export function DocumentDetailPage() {
                   <NotesTab />
                 )}
                 {activeTab === 'similar' && (
-                  <SimilarTab docId={docId} />
+                  <SimilarTab key={docId} docId={docId} />
                 )}
               </>
             )}

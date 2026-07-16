@@ -16,9 +16,6 @@ export function SimilarTab({ docId }: Props) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLoading(true);
-    setData(null);
     getSimilarDocuments(docId)
       .then(setData)
       .catch(() => setData(null))
@@ -61,7 +58,7 @@ export function SimilarTab({ docId }: Props) {
               {doc.title || doc.file_path.replace(/\\/g, '/').split('/').pop()}
             </span>
             <span className="text-xs px-1.5 py-0.5 rounded border bg-indigo-900/50 text-indigo-300 border-indigo-800 shrink-0">
-              {Math.round(doc.rank * 100)} %
+              {Math.round(Math.max(0, doc.rank) * 100)} %
             </span>
           </div>
           {(doc.authors || doc.year) && (
