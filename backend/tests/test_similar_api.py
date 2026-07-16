@@ -63,3 +63,11 @@ async def test_similar_respects_excluded(client, db_session):
 async def test_similar_unknown_document_404(client):
     resp = await client.get("/api/documents/9999/similar")
     assert resp.status_code == 404
+
+
+async def test_stats_contains_embedding_counts(client, db_session):
+    await _insert(db_session, 1, [1.0, 0.0])
+    resp = await client.get("/api/stats")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["embeddings"] == {"embedded": 1, "embeddable": 3}

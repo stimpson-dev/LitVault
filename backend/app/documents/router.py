@@ -54,6 +54,11 @@ async def get_stats(db: AsyncSession = Depends(get_db)) -> dict:
         WHERE excluded = 0
     """))
     r = rows.mappings().one()
+    emb_row = await db.execute(text(
+        "SELECT COUNT(*) FROM embeddings e"
+        " JOIN documents d ON d.id = e.document_id WHERE d.excluded = 0"
+    ))
+    embedded_count = emb_row.scalar() or 0
     return {
         "total": r["total"] or 0,
         "by_status": {
@@ -70,6 +75,10 @@ async def get_stats(db: AsyncSession = Depends(get_db)) -> dict:
         "has_text": {
             "yes": r["has_text_yes"] or 0,
             "no": r["has_text_no"] or 0,
+        },
+        "embeddings": {
+            "embedded": embedded_count,
+            "embeddable": r["has_text_yes"] or 0,
         },
         "needs_ai": r["needs_ai"] or 0,
         "needs_ocr": r["needs_ocr"] or 0,
