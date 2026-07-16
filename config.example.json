@@ -13,6 +13,7 @@
   "classify_parallelism": 2,
   "parse_timeout_seconds": 1200,
   "embedding_model": "nomic-ai/nomic-embed-text-v1.5",
+  "ocr_model": "glm-ocr:latest",
   "db_path": "litvault.db",
   "thumbnails_dir": "thumbnails",
   "log_level": "INFO",

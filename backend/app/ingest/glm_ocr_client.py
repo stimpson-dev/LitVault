@@ -1,0 +1,56 @@
+"""Synchroner OCR-Client gegen Ollama (glm-ocr).
+
+Bewusst synchron: wird aus parse_pdf heraus aufgerufen, das per
+asyncio.to_thread in einem Worker-Thread laeuft. Ein Client pro Prozess
+(lazy Singleton); Aufrufe sind durch das _ocr_lock des Parsers serialisiert.
+"""
+import base64
+import logging
+
+import httpx
+
+logger = logging.getLogger("litvault.ocr")
+
+OCR_PROMPT = (
+    "Extract all text from this page exactly as written. "
+    "Preserve the reading order. Output only the extracted text, no commentary."
+)
+
+
+class GlmOcrClient:
+    def __init__(self, base_url: str, model: str, timeout: float = 120.0):
+        self.model = model
+        self._client = httpx.Client(base_url=base_url, timeout=timeout)
+
+    def ocr_image(self, png_bytes: bytes) -> str:
+        body = {
+            "model": self.model,
+            "messages": [{
+                "role": "user",
+                "content": OCR_PROMPT,
+                "images": [base64.b64encode(png_bytes).decode("ascii")],
+            }],
+            "stream": False,
+            "options": {"temperature": 0},
+            "keep_alive": -1,
+        }
+        response = self._client.post("/api/chat", json=body)
+        response.raise_for_status()
+        return response.json()["message"]["content"]
+
+    def close(self) -> None:
+        self._client.close()
+
+
+_client: GlmOcrClient | None = None
+
+
+def get_glm_ocr_client() -> GlmOcrClient:
+    """Lazy Prozess-Singleton; folgt settings.ollama_url / settings.ocr_model."""
+    global _client
+    from app.config import get_settings
+
+    settings = get_settings()
+    if _client is None or _client.model != settings.ocr_model:
+        _client = GlmOcrClient(settings.ollama_url, settings.ocr_model)
+    return _client

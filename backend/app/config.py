@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen3:4b"
     ollama_num_ctx: int = 4096
     embedding_model: str = "nomic-ai/nomic-embed-text-v1.5"
+    ocr_model: str = "glm-ocr:latest"
     db_path: str = "litvault.db"
     thumbnails_dir: str = "thumbnails"
     log_level: str = "INFO"
