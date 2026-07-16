@@ -67,6 +67,13 @@ async def test_similar_unknown_document_404(client):
 
 async def test_stats_contains_embedding_counts(client, db_session):
     await _insert(db_session, 1, [1.0, 0.0])
+    # Embedding eines ANDEREN Modells darf nicht mitgezaehlt werden (Modellwechsel).
+    await db_session.execute(
+        text("INSERT INTO embeddings (document_id, model, vector, created_at)"
+             " VALUES (2, 'old-model', :vector, datetime('now'))"),
+        {"vector": vector_to_blob(np.asarray([0.0, 1.0], dtype=np.float32))},
+    )
+    await db_session.commit()
     resp = await client.get("/api/stats")
     assert resp.status_code == 200
     data = resp.json()

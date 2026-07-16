@@ -204,7 +204,7 @@ export function DocumentsPage() {
           onViewModeChange={setViewMode}
           sort={search.sort}
           onSortChange={search.setSort}
-          sortDisabled={search.mode === 'semantic'}
+          sortDisabled={search.mode === 'semantic' && !!search.query}
         />
         <ResultsList
           documents={search.results?.documents}
@@ -216,7 +216,7 @@ export function DocumentsPage() {
           selectedIds={selectedIds}
           onToggleSelect={handleToggleSelect}
           onFilterAdd={handleFilterAdd}
-          searchMode={search.mode}
+          searchMode={search.query ? search.mode : undefined}
         />
       </main>
 

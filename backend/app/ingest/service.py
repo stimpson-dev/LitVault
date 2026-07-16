@@ -210,6 +210,17 @@ class IngestService:
                         doc.indexed_at = datetime.now(timezone.utc).isoformat()
                         done += 1
 
+                        # Text wurde (neu) geschrieben -> Embedding ist veraltet bzw.
+                        # existiert fuer neue Docs noch nicht. DELETE ist ein No-Op
+                        # fuer brandneue Dokumente, korrekt fuer geaenderte (Re-Crawl).
+                        from sqlalchemy import delete as sa_delete
+
+                        from app.documents.models import Embedding
+
+                        await self.db.execute(
+                            sa_delete(Embedding).where(Embedding.document_id == doc.id)
+                        )
+
                         # Filename-basierte Metadaten als Basis (AI kann unten ueberschreiben)
                         meta_from_name = extract_from_filename(Path(meta["file_path"]).name)
                         if meta_from_name.title and not doc.title:
@@ -257,6 +268,13 @@ class IngestService:
                 await results_q.put((meta, ParseResult(error=str(res)), None))
 
         processed, errors = await writer
+
+        # Embeddings wurden ggf. pro Dokument geloescht (neu/geaendert) -> Vector-
+        # Index einmal je Crawl invalidieren (nicht pro Dokument, s. RESCAN-Zweig).
+        if processed > 0:
+            from app.search.vector_index import VECTOR_INDEX
+
+            VECTOR_INDEX.invalidate()
 
         return IngestResult(
             total_found=total_found,

@@ -54,10 +54,13 @@ async def get_stats(db: AsyncSession = Depends(get_db)) -> dict:
         WHERE excluded = 0
     """))
     r = rows.mappings().one()
+    from app.config import get_settings
+
     emb_row = await db.execute(text(
         "SELECT COUNT(*) FROM embeddings e"
-        " JOIN documents d ON d.id = e.document_id WHERE d.excluded = 0"
-    ))
+        " JOIN documents d ON d.id = e.document_id"
+        " WHERE d.excluded = 0 AND e.model = :model"
+    ), {"model": get_settings().embedding_model})
     embedded_count = emb_row.scalar() or 0
     return {
         "total": r["total"] or 0,
