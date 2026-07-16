@@ -115,6 +115,9 @@ const de = {
   "settings.folderPlaceholder": "C:\\Pfad\\zum\\Ordner",
   "settings.noFolders": "Keine Ordner konfiguriert",
   "settings.pollInterval": "Abfrageintervall (Sekunden)",
+  "settings.aiModels": "KI-Modelle",
+  "settings.classificationModel": "Klassifikations-Modell",
+  "settings.cloudHint": "Cloud-Modelle verarbeiten Dokumentinhalte auf externen Servern.",
 
   // Favorites
   "favorites.title": "Favoriten",
@@ -409,6 +412,9 @@ const en: Record<keyof typeof de, string> = {
   "settings.folderPlaceholder": "C:\\Path\\to\\folder",
   "settings.noFolders": "No folders configured",
   "settings.pollInterval": "Poll interval (seconds)",
+  "settings.aiModels": "AI models",
+  "settings.classificationModel": "Classification model",
+  "settings.cloudHint": "Cloud models process document contents on external servers.",
 
   // Favorites
   "favorites.title": "Favorites",

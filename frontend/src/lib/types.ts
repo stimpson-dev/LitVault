@@ -89,6 +89,8 @@ export interface AppSettings {
   // Ordner & Synchronisation
   watch_folders: string[];
   poll_interval_seconds: number;
+  // KI-Modelle
+  ollama_model: string;
   // Read-only
   db_path: string;
   thumbnails_dir: string;

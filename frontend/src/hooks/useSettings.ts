@@ -13,6 +13,7 @@ const DEFAULTS: AppSettings = {
   show_favorites_sidebar: true,
   watch_folders: [],
   poll_interval_seconds: 30,
+  ollama_model: 'qwen3:4b',
   db_path: '',
   thumbnails_dir: '',
   log_level: '',

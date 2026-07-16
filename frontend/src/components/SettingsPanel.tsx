@@ -18,6 +18,7 @@ interface DraftSettings {
   show_favorites_sidebar: boolean;
   watch_folders: string[];
   poll_interval_seconds: number;
+  ollama_model: string;
 }
 
 const selectClass =
@@ -39,6 +40,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
     show_favorites_sidebar: true,
     watch_folders: [],
     poll_interval_seconds: 30,
+    ollama_model: 'qwen3:4b',
   });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -58,6 +60,7 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
           show_favorites_sidebar: s.show_favorites_sidebar,
           watch_folders: s.watch_folders,
           poll_interval_seconds: s.poll_interval_seconds,
+          ollama_model: s.ollama_model,
         });
       })
       .catch(() => {});
@@ -293,6 +296,27 @@ export function SettingsPanel({ onClose }: SettingsPanelProps) {
                     className={inputClass}
                     min={1}
                   />
+                </div>
+              </div>
+            </section>
+
+            {/* --- KI-Modelle --- */}
+            <section>
+              <h3 className={sectionTitle}>{t('settings.aiModels')}</h3>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-1">{t('settings.classificationModel')}</label>
+                  <select
+                    value={draft.ollama_model}
+                    onChange={(e) =>
+                      setDraft((d) => ({ ...d, ollama_model: e.target.value }))
+                    }
+                    className={selectClass}
+                  >
+                    <option value="qwen3:4b">qwen3:4b (lokal)</option>
+                    <option value="gemma4:31b-cloud">gemma4:31b-cloud (Cloud)</option>
+                  </select>
+                  <p className="mt-1 text-xs text-zinc-500">{t('settings.cloudHint')}</p>
                 </div>
               </div>
             </section>
