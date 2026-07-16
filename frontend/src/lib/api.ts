@@ -1,4 +1,4 @@
-import type { SearchDocument, SearchResponse, SearchFilters, DocumentDetail, SearchFacets, TagItem, AppSettings, Job, SavedSearch, DashboardStats, SearchMode } from './types';
+import type { SearchDocument, SearchResponse, SearchFilters, DocumentDetail, SearchFacets, TagItem, AppSettings, Job, SavedSearch, DashboardStats, SearchMode, SimilarResponse } from './types';
 
 const BASE = '/api';
 
@@ -264,4 +264,11 @@ export function getExportUrl(query: string, filters: SearchFilters): string {
   if (filters.created_after) params.set('created_after', filters.created_after);
   if (filters.created_before) params.set('created_before', filters.created_before);
   return `${BASE}/search/export?${params}`;
+}
+
+// Similar documents
+export async function getSimilarDocuments(docId: number): Promise<SimilarResponse> {
+  const res = await fetch(`${BASE}/documents/${docId}/similar`);
+  if (!res.ok) throw new Error(`Similar fetch failed: ${res.status}`);
+  return res.json() as Promise<SimilarResponse>;
 }

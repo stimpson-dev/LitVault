@@ -133,3 +133,20 @@ export interface SavedSearch {
   query: string;
   created_at: string;
 }
+
+export interface SimilarDocument {
+  id: number;
+  title: string | null;
+  authors: string | null;
+  year: number | null;
+  doc_type: string | null;
+  file_path: string;
+  file_type: string;
+  summary: string | null;
+  rank: number;
+}
+
+export interface SimilarResponse {
+  embedded: boolean;
+  similar: SimilarDocument[];
+}

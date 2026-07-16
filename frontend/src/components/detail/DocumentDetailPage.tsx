@@ -11,10 +11,11 @@ import { DetailsTab } from './DetailsTab';
 import { ContentTab } from './ContentTab';
 import { MetadataTab } from './MetadataTab';
 import { NotesTab } from './NotesTab';
+import { SimilarTab } from './SimilarTab';
 import { useTranslation } from '@/i18n';
 import type { ShellContext } from '@/components/layout/AppShell';
 
-type TabId = 'details' | 'content' | 'metadata' | 'notes';
+type TabId = 'details' | 'content' | 'metadata' | 'notes' | 'similar';
 
 export function DocumentDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -95,6 +96,7 @@ export function DocumentDetailPage() {
     { id: 'content', label: t('detail.tabContent') },
     { id: 'metadata', label: t('detail.tabMetadata') },
     { id: 'notes', label: t('detail.tabNotes') },
+    { id: 'similar', label: t('detail.tabSimilar') },
   ];
 
   return (
@@ -267,6 +269,9 @@ export function DocumentDetailPage() {
                 )}
                 {activeTab === 'notes' && (
                   <NotesTab />
+                )}
+                {activeTab === 'similar' && (
+                  <SimilarTab docId={docId} />
                 )}
               </>
             )}
