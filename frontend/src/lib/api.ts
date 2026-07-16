@@ -1,4 +1,4 @@
-import type { SearchDocument, SearchResponse, SearchFilters, DocumentDetail, SearchFacets, TagItem, AppSettings, Job, SavedSearch, DashboardStats } from './types';
+import type { SearchDocument, SearchResponse, SearchFilters, DocumentDetail, SearchFacets, TagItem, AppSettings, Job, SavedSearch, DashboardStats, SearchMode } from './types';
 
 const BASE = '/api';
 
@@ -9,6 +9,7 @@ export async function searchDocuments(
   limit = 25,
   sort = 'date_desc',
   includeFacets = true,
+  mode: SearchMode = 'fts',
 ): Promise<SearchResponse> {
   const params = new URLSearchParams();
   if (query) params.set('q', query);
@@ -30,6 +31,7 @@ export async function searchDocuments(
   params.set('limit', String(limit));
   if (sort) params.set('sort', sort);
   if (!includeFacets) params.set('include_facets', 'false');
+  if (mode !== 'fts') params.set('mode', mode);
 
   const res = await fetch(`${BASE}/search?${params}`);
   if (!res.ok) throw new Error(`Search failed: ${res.status}`);

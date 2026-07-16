@@ -50,6 +50,12 @@ const de = {
   // Search
   "search.placeholder": "Dokumente durchsuchen... (Ctrl+K)",
 
+  // Semantic search
+  "search.modeExact": "Exakt",
+  "search.modeSemantic": "Semantisch",
+  "search.modeExactHint": "Volltextsuche (exakte Wörter)",
+  "search.modeSemanticHint": "Semantische Suche (nach Bedeutung)",
+
   // Toolbar
   "toolbar.savedSearches": "Gespeicherte Suchen",
   "toolbar.search": "Suchen",
@@ -330,6 +336,12 @@ const en: Record<keyof typeof de, string> = {
 
   // Search
   "search.placeholder": "Search documents... (Ctrl+K)",
+
+  // Semantic search
+  "search.modeExact": "Exact",
+  "search.modeSemantic": "Semantic",
+  "search.modeExactHint": "Full-text search (exact words)",
+  "search.modeSemanticHint": "Semantic search (by meaning)",
 
   // Toolbar
   "toolbar.savedSearches": "Saved Searches",

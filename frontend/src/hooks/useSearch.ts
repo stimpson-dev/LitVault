@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { searchDocuments } from '@/lib/api';
-import type { SearchFilters, SearchResponse, SearchDocument, AppSettings } from '@/lib/types';
+import type { SearchFilters, SearchResponse, SearchDocument, AppSettings, SearchMode } from '@/lib/types';
 
 interface UseSearchOptions {
   resultsPerPage?: number;
@@ -12,6 +12,7 @@ export function useSearch(options: UseSearchOptions = {}) {
   const [query, setQuery] = useState('');
   const [filters, setFilters] = useState<SearchFilters>({});
   const [sort, setSort] = useState<AppSettings['default_sort']>(defaultSort);
+  const [mode, setMode] = useState<SearchMode>('fts');
   const [documents, setDocuments] = useState<SearchDocument[]>([]);
   const [meta, setMeta] = useState<{ total: number; facets: SearchResponse['facets'] } | null>(null);
   const [loading, setLoading] = useState(false);
@@ -32,7 +33,7 @@ export function useSearch(options: UseSearchOptions = {}) {
 
     debounceTimer.current = setTimeout(() => {
       setLoading(true);
-      searchDocuments(query, filters, 0, resultsPerPage, sort)
+      searchDocuments(query, filters, 0, resultsPerPage, sort, true, mode)
         .then((data) => {
           setDocuments(data.documents);
           setMeta({ total: data.total, facets: data.facets });
@@ -47,13 +48,13 @@ export function useSearch(options: UseSearchOptions = {}) {
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [query, filters, resultsPerPage, sort]);
+  }, [query, filters, resultsPerPage, sort, mode]);
 
   // Load more: append results, skip facets re-computation for performance
   const loadMore = useCallback(() => {
     const nextOffset = documents.length;
     setLoading(true);
-    searchDocuments(query, filters, nextOffset, resultsPerPage, sort, false)
+    searchDocuments(query, filters, nextOffset, resultsPerPage, sort, false, mode)
       .then((data) => {
         setDocuments((prev) => [...prev, ...data.documents]);
         setMeta((prev) => ({ total: data.total, facets: prev?.facets ?? data.facets }));
@@ -61,14 +62,14 @@ export function useSearch(options: UseSearchOptions = {}) {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [query, filters, documents.length, resultsPerPage, sort]);
+  }, [query, filters, documents.length, resultsPerPage, sort, mode]);
 
   // Force re-fetch current search from scratch
   const refresh = useCallback(() => {
     setOffset(0);
     setDocuments([]);
     setLoading(true);
-    searchDocuments(query, filters, 0, resultsPerPage, sort)
+    searchDocuments(query, filters, 0, resultsPerPage, sort, true, mode)
       .then((data) => {
         setDocuments(data.documents);
         setMeta({ total: data.total, facets: data.facets });
@@ -78,11 +79,11 @@ export function useSearch(options: UseSearchOptions = {}) {
         setMeta(null);
       })
       .finally(() => setLoading(false));
-  }, [query, filters, resultsPerPage, sort]);
+  }, [query, filters, resultsPerPage, sort, mode]);
 
   const results: SearchResponse | null = meta
     ? { documents, total: meta.total, facets: meta.facets, query }
     : null;
 
-  return { query, setQuery, filters, setFilters, sort, setSort, results, loading, offset, loadMore, refresh };
+  return { query, setQuery, filters, setFilters, sort, setSort, mode, setMode, results, loading, offset, loadMore, refresh };
 }

@@ -1,3 +1,5 @@
+export type SearchMode = 'fts' | 'semantic';
+
 export interface SearchDocument {
   id: number;
   file_path: string;

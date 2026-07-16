@@ -1,8 +1,9 @@
 import { Menu, Activity } from 'lucide-react';
 import { SearchBar } from '@/components/SearchBar';
+import { SearchModeToggle } from '@/components/SearchModeToggle';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { ExportButton } from '@/components/ExportButton';
-import type { SearchFilters } from '@/lib/types';
+import type { SearchFilters, SearchMode } from '@/lib/types';
 
 interface AppNavbarProps {
   query: string;
@@ -14,6 +15,8 @@ interface AppNavbarProps {
   onOpenJobs: () => void;
   hasActiveJob?: boolean;
   filters: SearchFilters;
+  searchMode: SearchMode;
+  onSearchModeChange: (m: SearchMode) => void;
 }
 
 export function AppNavbar({
@@ -26,6 +29,8 @@ export function AppNavbar({
   onOpenJobs,
   hasActiveJob,
   filters,
+  searchMode,
+  onSearchModeChange,
 }: AppNavbarProps) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 h-14 bg-zinc-950 border-b border-zinc-800 flex items-center gap-3 px-4">
@@ -44,13 +49,16 @@ export function AppNavbar({
       </span>
 
       {/* Search bar (center, flexible) */}
-      <div className="flex-1 max-w-2xl mx-auto">
-        <SearchBar
-          query={query}
-          onQueryChange={onQueryChange}
-          resultCount={resultCount}
-          compact
-        />
+      <div className="flex-1 max-w-2xl mx-auto flex items-center gap-2">
+        <div className="flex-1">
+          <SearchBar
+            query={query}
+            onQueryChange={onQueryChange}
+            resultCount={resultCount}
+            compact
+          />
+        </div>
+        <SearchModeToggle mode={searchMode} onModeChange={onSearchModeChange} />
       </div>
 
       {/* Right actions */}

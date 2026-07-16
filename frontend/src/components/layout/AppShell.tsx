@@ -83,6 +83,8 @@ export function AppShell() {
         onToggleMobileSidebar={() => setMobileOpen((p) => !p)}
         onOpenJobs={() => toggleDropdown('jobs')}
         filters={search.filters}
+        searchMode={search.mode}
+        onSearchModeChange={search.setMode}
       />
 
       {/* Body: sidebar + content */}
