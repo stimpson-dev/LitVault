@@ -18,6 +18,7 @@ class SettingsUpdate(BaseModel):
     show_favorites_sidebar: bool | None = None
     watch_folders: list[str] | None = None
     poll_interval_seconds: int | None = None
+    ollama_model: str | None = None
 
 
 def _settings_response(s) -> dict:
@@ -31,6 +32,7 @@ def _settings_response(s) -> dict:
         "show_favorites_sidebar": s.show_favorites_sidebar,
         "watch_folders": s.watch_folders,
         "poll_interval_seconds": s.poll_interval_seconds,
+        "ollama_model": s.ollama_model,
         "db_path": s.db_path,
         "thumbnails_dir": s.thumbnails_dir,
         "log_level": s.log_level,
