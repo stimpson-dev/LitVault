@@ -5,11 +5,8 @@ asyncio.to_thread in einem Worker-Thread laeuft. Ein Client pro Prozess
 (lazy Singleton); Aufrufe sind durch das _ocr_lock des Parsers serialisiert.
 """
 import base64
-import logging
 
 import httpx
-
-logger = logging.getLogger("litvault.ocr")
 
 OCR_PROMPT = (
     "Extract all text from this page exactly as written. "
@@ -19,6 +16,7 @@ OCR_PROMPT = (
 
 class GlmOcrClient:
     def __init__(self, base_url: str, model: str, timeout: float = 120.0):
+        self.base_url = base_url
         self.model = model
         self._client = httpx.Client(base_url=base_url, timeout=timeout)
 
@@ -51,6 +49,8 @@ def get_glm_ocr_client() -> GlmOcrClient:
     from app.config import get_settings
 
     settings = get_settings()
-    if _client is None or _client.model != settings.ocr_model:
+    if _client is None or _client.model != settings.ocr_model or _client.base_url != settings.ollama_url:
+        if _client is not None:
+            _client.close()
         _client = GlmOcrClient(settings.ollama_url, settings.ocr_model)
     return _client

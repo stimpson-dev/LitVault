@@ -16,9 +16,11 @@ def _client_with_handler(handler) -> GlmOcrClient:
 
 
 def test_ocr_image_builds_correct_request():
-    captured: dict = {}
+    captured: dict = {"method": None, "path": None}
 
     def handler(request: httpx.Request) -> httpx.Response:
+        captured["method"] = request.method
+        captured["path"] = request.url.path
         captured.update(json.loads(request.content))
         return httpx.Response(200, json={"message": {"content": "erkannt"}})
 
@@ -26,6 +28,8 @@ def test_ocr_image_builds_correct_request():
     result = client.ocr_image(b"\x89PNG-fake-bytes")
 
     assert result == "erkannt"
+    assert captured["method"] == "POST"
+    assert captured["path"] == "/api/chat"
     assert captured["model"] == "glm-ocr:latest"
     assert captured["stream"] is False
     assert captured["options"] == {"temperature": 0}
@@ -58,3 +62,26 @@ def test_singleton_follows_settings(monkeypatch):
     assert c1 is c2
     from app.config import get_settings
     assert c1.model == get_settings().ocr_model
+
+
+def test_singleton_rebuilds_on_url_change(monkeypatch):
+    import app.ingest.glm_ocr_client as mod
+    from app.config import get_settings
+
+    # Reset to None and get first client
+    monkeypatch.setattr(mod, "_client", None)
+    c1 = mod.get_glm_ocr_client()
+    original_url = c1.base_url
+
+    # Mock settings to return different URL
+    class MockSettings:
+        ocr_model = get_settings().ocr_model
+        ollama_url = "http://other-host:11434"
+
+    monkeypatch.setattr("app.config.get_settings", lambda: MockSettings())
+
+    # Get client again; should rebuild because URL differs
+    c2 = mod.get_glm_ocr_client()
+    assert c1 is not c2
+    assert c2.base_url == "http://other-host:11434"
+    assert c1._client.is_closed is True
