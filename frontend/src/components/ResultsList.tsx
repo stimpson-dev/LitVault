@@ -2,7 +2,7 @@ import { ResultRow } from './ResultRow';
 import { GridCard } from './GridCard';
 import { LargeCard } from './LargeCard';
 import { Skeleton } from './ui/Skeleton';
-import type { SearchDocument, AppSettings, SearchFilters } from '@/lib/types';
+import type { SearchDocument, AppSettings, SearchFilters, SearchMode } from '@/lib/types';
 import { useTranslation } from '@/i18n';
 
 type FilterAddHandler = (type: keyof SearchFilters, value: string) => void;
@@ -17,9 +17,10 @@ interface ResultsListProps {
   selectedIds?: Set<number>;
   onToggleSelect?: (id: number) => void;
   onFilterAdd?: FilterAddHandler;
+  searchMode?: SearchMode;
 }
 
-export function ResultsList({ documents, total, loading, onLoadMore, onSelect, viewMode = 'table', selectedIds, onToggleSelect, onFilterAdd }: ResultsListProps) {
+export function ResultsList({ documents, total, loading, onLoadMore, onSelect, viewMode = 'table', selectedIds, onToggleSelect, onFilterAdd, searchMode }: ResultsListProps) {
   const { t } = useTranslation();
 
   if (loading && (!documents || documents.length === 0)) {
@@ -42,6 +43,9 @@ export function ResultsList({ documents, total, loading, onLoadMore, onSelect, v
     return (
       <div className="py-12 text-center text-zinc-500 text-sm">
         {t('results.noResults')}
+        {searchMode === 'semantic' && (
+          <p className="mt-2 text-xs text-zinc-600">{t('results.noResultsSemanticHint')}</p>
+        )}
       </div>
     );
   }
@@ -89,7 +93,15 @@ export function ResultsList({ documents, total, loading, onLoadMore, onSelect, v
   return (
     <div className="flex flex-col">
       {documents.map((doc) => (
-        <ResultRow key={doc.id} doc={doc} onSelect={onSelect} selected={selectedIds?.has(doc.id)} onToggleSelect={onToggleSelect} onFilterAdd={onFilterAdd} />
+        <ResultRow
+          key={doc.id}
+          doc={doc}
+          onSelect={onSelect}
+          selected={selectedIds?.has(doc.id)}
+          onToggleSelect={onToggleSelect}
+          onFilterAdd={onFilterAdd}
+          semanticScore={searchMode === 'semantic' ? doc.rank : undefined}
+        />
       ))}
       {loadMoreButton}
     </div>

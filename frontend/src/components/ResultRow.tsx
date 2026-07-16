@@ -29,6 +29,7 @@ interface ResultRowProps {
   selected?: boolean;
   onToggleSelect?: (id: number) => void;
   onFilterAdd?: FilterAddHandler;
+  semanticScore?: number;
 }
 
 function getFileIcon(fileType: string) {
@@ -64,7 +65,7 @@ function getDisplayTitle(doc: SearchDocument): string {
   return parts[parts.length - 1] ?? doc.file_path;
 }
 
-export function ResultRow({ doc, onSelect, selected, onToggleSelect, onFilterAdd }: ResultRowProps) {
+export function ResultRow({ doc, onSelect, selected, onToggleSelect, onFilterAdd, semanticScore }: ResultRowProps) {
   const displayTitle = getDisplayTitle(doc);
 
   return (
@@ -109,6 +110,11 @@ export function ResultRow({ doc, onSelect, selected, onToggleSelect, onFilterAdd
                 {DOC_TYPE_LABELS[doc.doc_type] ?? doc.doc_type}
               </Badge>
             )}
+            {semanticScore !== undefined && (
+              <Badge className="text-xs border bg-indigo-900/50 text-indigo-300 border-indigo-800">
+                {Math.round(Math.max(0, semanticScore) * 100)} %
+              </Badge>
+            )}
           </div>
           {(doc.authors ?? doc.year) && (
             <p className="mt-0.5 text-xs text-zinc-400">
@@ -124,12 +130,14 @@ export function ResultRow({ doc, onSelect, selected, onToggleSelect, onFilterAdd
               )}
             </p>
           )}
-          {doc.text_snippet && (
+          {doc.text_snippet ? (
             <p
               className="mt-1 text-xs text-zinc-400 line-clamp-2 [&_mark]:bg-amber-400/30 [&_mark]:text-amber-200 [&_mark]:rounded-sm"
               dangerouslySetInnerHTML={{ __html: doc.text_snippet }}
             />
-          )}
+          ) : semanticScore !== undefined && doc.summary ? (
+            <p className="mt-1 text-xs text-zinc-400 line-clamp-2">{doc.summary}</p>
+          ) : null}
         </div>
         <FavoriteButton docId={doc.id} />
       </div>

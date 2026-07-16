@@ -10,6 +10,7 @@ interface DocumentToolbarProps {
   onViewModeChange: (mode: ViewMode) => void;
   sort: SortOption;
   onSortChange: (sort: SortOption) => void;
+  sortDisabled?: boolean;
 }
 
 export function DocumentToolbar({
@@ -17,11 +18,14 @@ export function DocumentToolbar({
   onViewModeChange,
   sort,
   onSortChange,
+  sortDisabled,
 }: DocumentToolbarProps) {
   return (
     <div className="flex items-center gap-3 px-4 py-2 border-b border-zinc-800">
       <div className="flex items-center gap-3 ml-auto shrink-0">
-        <SortControls value={sort} onSortChange={onSortChange} />
+        <div className={sortDisabled ? 'opacity-50 pointer-events-none' : ''}>
+          <SortControls value={sort} onSortChange={onSortChange} />
+        </div>
         <DisplayModeToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
       </div>
     </div>

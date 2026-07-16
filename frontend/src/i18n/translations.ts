@@ -39,6 +39,7 @@ const de = {
 
   // Results
   "results.noResults": "Keine Ergebnisse",
+  "results.noResultsSemanticHint": "Semantischer Modus: Falls noch keine Embeddings erzeugt wurden, im Dashboard „Embeddings erzeugen“ starten.",
   "results.loadMore": "Mehr laden",
   "results.loading": "Laden...",
   "results.count": "Ergebnisse",
@@ -326,6 +327,7 @@ const en: Record<keyof typeof de, string> = {
 
   // Results
   "results.noResults": "No results",
+  "results.noResultsSemanticHint": "Semantic mode: if no embeddings have been generated yet, run 'Generate embeddings' from the dashboard.",
   "results.loadMore": "Load more",
   "results.loading": "Loading...",
   "results.count": "results",
