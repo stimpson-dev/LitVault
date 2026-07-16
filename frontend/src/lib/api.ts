@@ -181,6 +181,12 @@ export async function classifyBatch(): Promise<{ job_id: string }> {
   return res.json() as Promise<{ job_id: string }>;
 }
 
+export async function embedBatch(): Promise<{ job_id: string }> {
+  const res = await fetch(`${BASE}/documents/embed-batch`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Embed batch failed: ${res.status}`);
+  return res.json() as Promise<{ job_id: string }>;
+}
+
 // Rescan
 export class ApiError extends Error {
   status: number;

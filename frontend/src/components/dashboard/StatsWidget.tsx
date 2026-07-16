@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
-import { RefreshCw, Sparkles, RotateCcw, ScanEye, Check, AlertCircle } from 'lucide-react';
+import { RefreshCw, Sparkles, RotateCcw, ScanEye, Check, AlertCircle, Database } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { getDashboardStats, classifyBatch, rescanAllErrors, rescanNoText } from '@/lib/api';
+import { getDashboardStats, classifyBatch, embedBatch, rescanAllErrors, rescanNoText } from '@/lib/api';
 import type { DashboardStats } from '@/lib/types';
 import { useTranslation } from '@/i18n';
 import { WidgetFrame } from '@/components/ui/WidgetFrame';
@@ -246,6 +246,12 @@ export function StatsWidget() {
               icon={<ScanEye size={13} />}
               onClick={() => navigate('/?processing_status=done&has_text=false')}
             />
+            <StatCard
+              label={t('stats.embedded')}
+              count={stats.embeddings.embedded}
+              total={stats.embeddings.embeddable}
+              icon={<Database size={13} />}
+            />
           </div>
         ) : null}
       </div>
@@ -261,6 +267,14 @@ export function StatsWidget() {
           feedbackText={feedback['classify'] ?? null}
           errorText={t('jobs.error')}
           onClick={() => runAction('classify', classifyBatch)}
+          accent="emerald"
+        />
+        <ActionButton
+          label={t('stats.embedBatch')}
+          icon={<Database size={11} />}
+          feedbackText={feedback['embed'] ?? null}
+          errorText={t('jobs.error')}
+          onClick={() => runAction('embed', embedBatch)}
           accent="emerald"
         />
         <ActionButton

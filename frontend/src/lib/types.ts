@@ -125,6 +125,7 @@ export interface DashboardStats {
   needs_ai: number;
   needs_ocr: number;
   errors: number;
+  embeddings: { embedded: number; embeddable: number };
 }
 
 export interface SavedSearch {
