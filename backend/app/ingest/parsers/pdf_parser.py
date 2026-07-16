@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import numpy as np
 import re
 import threading
 import unicodedata
@@ -9,32 +8,14 @@ from pathlib import Path
 import fitz  # PyMuPDF
 fitz.TOOLS.mupdf_display_errors(False)  # suppress C-level ICC profile warnings on stderr
 import pymupdf4llm
-from PIL import Image
 
 from .models import ParseResult
 
 logger = logging.getLogger("litvault.parser.pdf")
 
-# Lazy-loaded EasyOCR reader (heavy model, load once)
-_ocr_reader = None
-_ocr_lock = threading.Lock()  # EasyOCR-Reader ist nicht thread-safe; GPU ohnehin seriell
-
-
-def _get_ocr():
-    """Lazy-init EasyOCR with German+English support."""
-    global _ocr_reader
-    if _ocr_reader is None:
-        import easyocr
-        import torch
-
-        use_gpu = torch.cuda.is_available()
-        _ocr_reader = easyocr.Reader(
-            ["de", "en"],
-            gpu=use_gpu,
-            verbose=False,
-        )
-        logger.info("EasyOCR initialized (lang=de+en, gpu=%s)", use_gpu)
-    return _ocr_reader
+# OCR laeuft ueber Ollama (glm-ocr); das Lock verhindert sinnloses Anstauen
+# paralleler Requests — die GPU bedient ohnehin seriell.
+_ocr_lock = threading.Lock()
 
 
 def _is_scanned_page(page: fitz.Page) -> bool:
@@ -73,23 +54,12 @@ def _normalize_german_text(text: str) -> str:
 
 
 def _ocr_page(page: fitz.Page) -> str:
-    """Render page at 200 DPI and run EasyOCR."""
-    pixmap = page.get_pixmap(dpi=200)
-    img = Image.frombytes("RGB", [pixmap.width, pixmap.height], pixmap.samples)
-    img_array = np.array(img)
-    del img, pixmap
+    """Render page at 200 DPI and run GLM-OCR via Ollama."""
+    from app.ingest.glm_ocr_client import get_glm_ocr_client
 
+    png_bytes = page.get_pixmap(dpi=200).tobytes("png")
     with _ocr_lock:
-        reader = _get_ocr()
-        results = reader.readtext(img_array, detail=1, paragraph=False)
-
-    if not results:
-        return ""
-
-    # Sort by vertical position (top to bottom), then extract text
-    # Each result: (bbox, text, confidence)
-    results.sort(key=lambda r: r[0][0][1])  # sort by top-left y
-    return "\n".join(text for _, text, _ in results)
+        return get_glm_ocr_client().ocr_image(png_bytes)
 
 
 def parse_pdf(path: Path) -> ParseResult:
@@ -139,7 +109,7 @@ def parse_pdf(path: Path) -> ParseResult:
             page = doc[page_num]
             if _is_scanned_page(page) and ocr_attempts < MAX_OCR_PAGES:
                 ocr_attempts += 1
-                logger.debug("EasyOCR page %d/%d (attempt %d) of %s", page_num, page_count, ocr_attempts, path)
+                logger.debug("GLM-OCR page %d/%d (attempt %d) of %s", page_num, page_count, ocr_attempts, path)
                 try:
                     page_text = _ocr_page(page)
                     ocr_pages.append(page_num)
