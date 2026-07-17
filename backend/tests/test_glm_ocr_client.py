@@ -95,3 +95,44 @@ def test_singleton_rebuilds_on_url_change(monkeypatch):
     assert c1 is not c2
     assert c2.base_url == "http://other-host:11434"
     assert c1._client.is_closed is True
+
+
+class TestCleanOcrOutput:
+    """GLM-OCR liefert auf leeren Seiten Meta-Kommentare statt Text und
+    halluziniert ---/Fence-Wiederholungen (Praxisbefund 2026-07-17)."""
+
+    def test_blank_page_chatter_becomes_empty(self):
+        from app.ingest.glm_ocr_client import clean_ocr_output
+        chatter = (
+            "The image provided is completely blank with no visible text or content. "
+            "Therefore, there is no text to extract from it.\n"
+            "No, that's not what I see. The image is completely blank with no visible text.\n"
+            "Yes, that is correct. The image is completely blank."
+        )
+        assert clean_ocr_output(chatter) == ""
+
+    def test_real_text_passes_through(self):
+        from app.ingest.glm_ocr_client import clean_ocr_output
+        text = "Betriebsfestigkeitsuntersuchungen zur Gruebchenbildung\nan einsatzgehaerteten Stirnradflanken"
+        assert clean_ocr_output(text) == text
+
+    def test_dash_runs_are_stripped(self):
+        from app.ingest.glm_ocr_client import clean_ocr_output
+        text = "Kapitel 9\n---\n---\n---\n---\nDer Versuch zeigt gute Ergebnisse."
+        cleaned = clean_ocr_output(text)
+        assert "Kapitel 9" in cleaned and "Der Versuch" in cleaned
+        assert "---\n---" not in cleaned
+
+    def test_fence_lines_stripped(self):
+        from app.ingest.glm_ocr_client import clean_ocr_output
+        text = "Echter Text\n```markdown\nEchter Text\n```\n```\n```"
+        cleaned = clean_ocr_output(text)
+        assert cleaned.startswith("Echter Text")
+        assert "```" not in cleaned
+
+    def test_real_text_mentioning_image_kept(self):
+        from app.ingest.glm_ocr_client import clean_ocr_output
+        # Fachtext der 'image'/'blank' zufaellig erwaehnt darf NICHT geleert werden
+        text = ("Die Bildanalyse (image processing) der Verzahnung zeigt deutliche "
+                "Verschleissspuren. Weitere Details in Kapitel 4. " * 3)
+        assert clean_ocr_output(text) == text.strip()

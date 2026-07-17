@@ -5,6 +5,7 @@ asyncio.to_thread in einem Worker-Thread laeuft. Ein Client pro Prozess
 (lazy Singleton); Aufrufe sind durch das _ocr_lock des Parsers serialisiert.
 """
 import base64
+import re
 
 import httpx
 
@@ -19,6 +20,48 @@ OCR_PROMPT = (
 # haelt das Modell komplett in der GPU (gemessen: 2,3 GB, 100% GPU).
 # num_predict deckelt Halluzinations-Schleifen auf (fast) leeren Seiten.
 OCR_OPTIONS = {"temperature": 0, "num_ctx": 8192, "num_predict": 2048}
+
+# Meta-Kommentare, mit denen das Modell auf leeren Seiten das BILD beschreibt
+# statt Text zu extrahieren ("The image is completely blank...").
+_BLANK_META_RE = re.compile(
+    r"image\s+(?:provided\s+)?(?:is\s+)?(?:completely\s+)?blank"
+    r"|no\s+visible\s+text"
+    r"|no\s+text\s+to\s+extract",
+    re.IGNORECASE,
+)
+_DASH_LINE_RE = re.compile(r"^\s*-{3,}\s*$")
+_FENCE_LINE_RE = re.compile(r"^\s*```[\w-]*\s*$")
+
+
+def clean_ocr_output(text: str) -> str:
+    """Bereinigt GLM-OCR-Artefakte (Praxisbefund 2026-07-17).
+
+    (a) Leerseiten-Geschwaetz: Beschreibt die Mehrheit der Zeilen das Bild
+    ("completely blank", "no visible text") statt Inhalt zu liefern, ist die
+    ganze Seite Meta-Kommentar -> leerer String.
+    (b) Halluzinierte Wiederholungen: Runs von ----Zeilen auf eine reduzieren,
+    Markdown-Fence-Zeilen entfernen.
+    """
+    lines = [ln for ln in text.splitlines()]
+    non_empty = [ln for ln in lines if ln.strip()]
+    if non_empty:
+        meta_hits = sum(1 for ln in non_empty if _BLANK_META_RE.search(ln))
+        if meta_hits / len(non_empty) > 0.5:
+            return ""
+
+    cleaned: list[str] = []
+    prev_was_dash = False
+    for ln in lines:
+        if _FENCE_LINE_RE.match(ln):
+            continue
+        if _DASH_LINE_RE.match(ln):
+            if prev_was_dash:
+                continue
+            prev_was_dash = True
+        else:
+            prev_was_dash = False
+        cleaned.append(ln)
+    return "\n".join(cleaned).strip()
 
 
 class GlmOcrClient:
@@ -45,7 +88,7 @@ class GlmOcrClient:
         content = data.get("message", {}).get("content")
         if content is None:
             raise ValueError(f"Unexpected Ollama response shape: {str(data)[:200]}")
-        return content
+        return clean_ocr_output(content)
 
     def close(self) -> None:
         self._client.close()
