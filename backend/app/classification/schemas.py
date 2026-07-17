@@ -51,6 +51,11 @@ RULES:
 - Set confidence between 0.0 and 1.0 based on how clearly you can identify the metadata
 - If information is unclear or missing, use null/empty and lower confidence
 
+OUTPUT FORMAT (mandatory): Return a single flat JSON object with EXACTLY these
+top-level keys and no others, no nesting:
+{{"doc_type": "...", "categories": ["..."], "tags": ["..."], "summary": "...",
+"title": "...", "authors": ["..."], "year": 2000, "source": "...", "confidence": 0.9}}
+
 DOCUMENT TEXT:
 {text}"""
 

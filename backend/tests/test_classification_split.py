@@ -277,3 +277,15 @@ async def test_apply_classification_result_persists_categories(db_session):
         )
     )
     assert link_result.scalar_one_or_none() is not None, "DocumentCategory link must exist"
+
+
+def test_prompt_names_exact_output_fields():
+    """Cloud-Modelle (gemma4:31b-cloud) ignorieren format=json_schema und
+    erfinden eigene Feldnamen (document_type, keywords, metadata.*) — der
+    Prompt MUSS die exakten Zielfelder daher selbst vorgeben (2026-07-17)."""
+    from app.classification.schemas import build_prompt
+
+    prompt = build_prompt("beliebiger text")
+    for field in ('"doc_type"', '"categories"', '"tags"', '"summary"',
+                  '"title"', '"authors"', '"year"', '"source"', '"confidence"'):
+        assert field in prompt, f"Feld {field} fehlt im Prompt"
