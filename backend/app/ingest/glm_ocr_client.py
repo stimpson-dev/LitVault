@@ -34,7 +34,11 @@ class GlmOcrClient:
         }
         response = self._client.post("/api/chat", json=body)
         response.raise_for_status()
-        return response.json()["message"]["content"]
+        data = response.json()
+        content = data.get("message", {}).get("content")
+        if content is None:
+            raise ValueError(f"Unexpected Ollama response shape: {str(data)[:200]}")
+        return content
 
     def close(self) -> None:
         self._client.close()

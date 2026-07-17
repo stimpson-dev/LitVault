@@ -49,6 +49,15 @@ def test_ocr_image_raises_on_http_error():
         client.ocr_image(b"png")
 
 
+def test_ocr_image_raises_on_unexpected_response_shape():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"unexpected": True})
+
+    client = _client_with_handler(handler)
+    with pytest.raises(ValueError):
+        client.ocr_image(b"png")
+
+
 def test_ocr_model_config_default():
     from app.config import Settings
     assert Settings.model_fields["ocr_model"].default == "glm-ocr:latest"

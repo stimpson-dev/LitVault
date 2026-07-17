@@ -57,10 +57,12 @@ async def process_job(job: Job, store: JobStore, settings: Settings, crawl_lock:
                                 await jobs_router_mod._queue.put(embed_job)
                                 logger.info("Auto-queued EMBED job after crawl")
                 case JobType.CLASSIFY:
+                    from app.config import get_settings as _live_settings
+                    live = _live_settings()
                     ollama = OllamaClient(
-                        base_url=settings.ollama_url,
-                        model=settings.ollama_model,
-                        num_ctx=settings.ollama_num_ctx,
+                        base_url=live.ollama_url,
+                        model=live.ollama_model,
+                        num_ctx=live.ollama_num_ctx,
                     )
                     try:
                         doc_id = job.payload.get("document_id")

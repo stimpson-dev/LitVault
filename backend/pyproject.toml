@@ -13,7 +13,6 @@ dependencies = [
     "pymupdf4llm",
     "python-docx",
     "python-pptx",
-    "pytesseract",
     "langdetect",
     "sentence-transformers",
     "einops",
