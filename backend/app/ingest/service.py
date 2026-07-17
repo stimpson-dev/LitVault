@@ -141,7 +141,7 @@ class IngestService:
         logger.info("Scanning folder: %s", folder)
         if on_progress:
             on_progress(0, 0, f"Scanning: {folder}")
-        new_files = await find_new_files(folder, self.db)
+        new_files = await find_new_files(folder, self.db, on_progress=on_progress)
         total_found = len(new_files)
         logger.info("Found %d new/changed files in %s", total_found, folder)
         if on_progress:

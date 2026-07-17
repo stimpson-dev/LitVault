@@ -32,7 +32,7 @@ async def test_parses_overlap(db_session, fake_files, monkeypatch, tmp_path):
         concurrency["now"] -= 1
         return ParseResult(text="inhalt " * 40, page_count=1, has_text=True, ocr_pages=[])
 
-    async def fake_find(folder, db):
+    async def fake_find(folder, db, on_progress=None):
         return fake_files
 
     async def fake_thumb(src, dst):
@@ -72,7 +72,7 @@ async def test_recrawl_changed_file_deletes_stale_embedding(db_session, monkeypa
         return ParseResult(text="komplett neuer inhalt nach aenderung", page_count=1,
                             has_text=True, ocr_pages=[])
 
-    async def fake_find(folder, db):
+    async def fake_find(folder, db, on_progress=None):
         return [{"file_path": "a/kegelrad.pdf", "file_hash": "changed-hash",
                   "file_type": "pdf", "file_size": 123, "mtime": 1.0}]
 
