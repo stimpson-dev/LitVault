@@ -82,6 +82,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
     total: number;
     message: string;
   } | null>(null);
+  const [sseJobId, setSseJobId] = useState<string | null>(null);
   const [spinning, setSpinning] = useState(false);
 
   const esRef = useRef<EventSource | null>(null);
@@ -91,6 +92,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
     if (type === 'crawl') return 'Crawl';
     if (type === 'classify') return t('jobs.classify');
     if (type === 'rescan') return t('jobs.rescan');
+    if (type === 'embed') return t('jobs.embed');
     return type;
   }
 
@@ -116,6 +118,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
     }
     const es = new EventSource(`/api/jobs/${jobId}/progress`);
     esRef.current = es;
+    setSseJobId(jobId);
 
     es.onmessage = (event) => {
       try {
@@ -134,6 +137,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
         if (data.status === 'done' || data.status === 'error' || data.status === 'cancelled') {
           es.close();
           esRef.current = null;
+          setSseJobId(null);
           void fetchJobs();
         }
       } catch {
@@ -170,6 +174,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
             esRef.current.close();
             esRef.current = null;
             setActiveProgress(null);
+            setSseJobId(null);
           }
         })
         .catch(() => {});
@@ -181,14 +186,9 @@ export function JobProgress({ onClose }: JobProgressProps) {
     };
   }, [connectSSE]);
 
-  const activeJob = jobs.find((j) => j.status === 'processing');
+  const processingJobs = jobs.filter((j) => j.status === 'processing');
   const queuedJobs = jobs.filter((j) => j.status === 'queued');
   const recentJobs = jobs.filter((j) => j.status !== 'processing' && j.status !== 'queued').slice(0, 8);
-
-  const progressPercent =
-    activeProgress && activeProgress.total > 0
-      ? (activeProgress.current / activeProgress.total) * 100
-      : 0;
 
   const handleRefresh = () => {
     setSpinning(true);
@@ -213,7 +213,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
         }`}
       >
         <div className="flex items-center gap-2.5">
-          {activeJob ? (
+          {processingJobs.length > 0 ? (
             <div className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
           ) : (
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
@@ -243,69 +243,86 @@ export function JobProgress({ onClose }: JobProgressProps) {
         </div>
       </div>
 
-      {/* Active job */}
-      {activeJob && (
-        <div className="px-3 pb-3">
-          <div
-            className="
-              relative bg-zinc-800/60 rounded-lg p-3 ring-1 ring-amber-500/20
-              shadow-[inset_0_1px_0_0_rgba(245,158,11,0.06)]
-            "
-          >
-            <div className="flex items-center justify-between mb-2.5">
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center">
-                  <Loader2 size={12} className="text-amber-300 animate-spin" />
-                </div>
-                <span className="text-[12px] font-medium text-amber-200">
-                  {getTypeLabel(activeJob.type)}
-                </span>
-              </div>
-              <button
-                onClick={async () => {
-                  try {
-                    await cancelJob(activeJob.id);
-                    fetchJobs();
-                  } catch { /* ignore */ }
-                }}
+      {/* Active jobs — eine Karte pro laufendem Job */}
+      {processingJobs.length > 0 && (
+        <div className="px-3 pb-3 space-y-2">
+          {processingJobs.map((job) => {
+            // Erster laufender Job bekommt Live-Daten via SSE (0,5s),
+            // weitere Karten zeigen die 5s-Poll-Daten des Jobs selbst.
+            const live =
+              job.id === sseJobId && activeProgress
+                ? activeProgress
+                : {
+                    status: job.status,
+                    current: job.progress_current,
+                    total: job.progress_total,
+                    message: job.progress_message,
+                  };
+            const pct = live.total > 0 ? (live.current / live.total) * 100 : 0;
+            return (
+              <div
+                key={job.id}
                 className="
-                  p-1 rounded-md text-zinc-600 hover:text-red-400
-                  hover:bg-red-500/10 transition-all duration-200
+                  relative bg-zinc-800/60 rounded-lg p-3 ring-1 ring-amber-500/20
+                  shadow-[inset_0_1px_0_0_rgba(245,158,11,0.06)]
                 "
-                title={t('jobs.cancel')}
               >
-                <XCircle size={13} />
-              </button>
-            </div>
-
-            {activeProgress ? (
-              <>
-                <div className="w-full h-1.5 bg-zinc-700/60 rounded-full overflow-hidden mb-2">
-                  <div
-                    className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-500"
-                    style={{ width: `${progressPercent}%` }}
-                  />
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] text-zinc-500 truncate max-w-[320px]">
-                    {shortenMessage(activeProgress.message)}
-                  </span>
-                  <div className="flex items-center gap-2 shrink-0 ml-2">
-                    <span className="text-[10px] tabular-nums text-zinc-500">
-                      {activeProgress.current}/{activeProgress.total}
-                    </span>
-                    <span className="text-[10px] tabular-nums text-amber-400/80">
-                      {Math.round(progressPercent)}%
+                <div className="flex items-center justify-between mb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-md bg-amber-500/10 flex items-center justify-center">
+                      <Loader2 size={12} className="text-amber-300 animate-spin" />
+                    </div>
+                    <span className="text-[12px] font-medium text-amber-200">
+                      {getTypeLabel(job.type)}
                     </span>
                   </div>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await cancelJob(job.id);
+                        fetchJobs();
+                      } catch { /* ignore */ }
+                    }}
+                    className="
+                      p-1 rounded-md text-zinc-600 hover:text-red-400
+                      hover:bg-red-500/10 transition-all duration-200
+                    "
+                    title={t('jobs.cancel')}
+                  >
+                    <XCircle size={13} />
+                  </button>
                 </div>
-              </>
-            ) : (
-              <div className="w-full h-1.5 bg-zinc-700/60 rounded-full overflow-hidden">
-                <div className="h-full rounded-full bg-amber-400/60 w-1/3 animate-pulse" />
+
+                {live.total > 0 ? (
+                  <div className="w-full h-1.5 bg-zinc-700/60 rounded-full overflow-hidden mb-2">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 to-emerald-500 transition-all duration-500"
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-1.5 bg-zinc-700/60 rounded-full overflow-hidden mb-2">
+                    <div className="h-full rounded-full bg-amber-400/60 w-1/3 animate-pulse" />
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-zinc-500 truncate max-w-[320px]">
+                    {shortenMessage(live.message)}
+                  </span>
+                  {live.total > 0 && (
+                    <div className="flex items-center gap-2 shrink-0 ml-2">
+                      <span className="text-[10px] tabular-nums text-zinc-500">
+                        {live.current}/{live.total}
+                      </span>
+                      <span className="text-[10px] tabular-nums text-amber-400/80">
+                        {Math.round(pct)}%
+                      </span>
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+            );
+          })}
         </div>
       )}
 
