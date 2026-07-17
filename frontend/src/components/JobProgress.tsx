@@ -119,6 +119,7 @@ export function JobProgress({ onClose }: JobProgressProps) {
     const es = new EventSource(`/api/jobs/${jobId}/progress`);
     esRef.current = es;
     setSseJobId(jobId);
+    setActiveProgress(null);
 
     es.onmessage = (event) => {
       try {
