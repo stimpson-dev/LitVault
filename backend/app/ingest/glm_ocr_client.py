@@ -13,6 +13,13 @@ OCR_PROMPT = (
     "Preserve the reading order. Output only the extracted text, no commentary."
 )
 
+# num_ctx begrenzt: ohne Angabe laedt Ollama das Modell mit dem vollen
+# 128K-Modelfile-Kontext (~11 GB KV-Cache -> CPU-Spill auf 8-GB-GPUs,
+# Timeouts). 8192 reicht fuer Bild-Tokens + eine volle Textseite und
+# haelt das Modell komplett in der GPU (gemessen: 2,3 GB, 100% GPU).
+# num_predict deckelt Halluzinations-Schleifen auf (fast) leeren Seiten.
+OCR_OPTIONS = {"temperature": 0, "num_ctx": 8192, "num_predict": 2048}
+
 
 class GlmOcrClient:
     def __init__(self, base_url: str, model: str, timeout: float = 120.0):
@@ -29,7 +36,7 @@ class GlmOcrClient:
                 "images": [base64.b64encode(png_bytes).decode("ascii")],
             }],
             "stream": False,
-            "options": {"temperature": 0},
+            "options": dict(OCR_OPTIONS),
             "keep_alive": -1,
         }
         response = self._client.post("/api/chat", json=body)

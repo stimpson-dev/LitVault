@@ -4,7 +4,7 @@ import json
 import httpx
 import pytest
 
-from app.ingest.glm_ocr_client import GlmOcrClient, OCR_PROMPT
+from app.ingest.glm_ocr_client import GlmOcrClient, OCR_OPTIONS, OCR_PROMPT
 
 
 def _client_with_handler(handler) -> GlmOcrClient:
@@ -32,7 +32,8 @@ def test_ocr_image_builds_correct_request():
     assert captured["path"] == "/api/chat"
     assert captured["model"] == "glm-ocr:latest"
     assert captured["stream"] is False
-    assert captured["options"] == {"temperature": 0}
+    assert captured["options"] == OCR_OPTIONS
+    assert captured["options"]["num_ctx"] == 8192  # GPU-Fit: voller 128K-Kontext spillt auf CPU
     assert captured["keep_alive"] == -1
     msg = captured["messages"][0]
     assert msg["role"] == "user"
