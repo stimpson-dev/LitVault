@@ -80,7 +80,9 @@ class GlmOcrClient:
             }],
             "stream": False,
             "options": dict(OCR_OPTIONS),
-            "keep_alive": -1,
+            # Endlich statt -1: fuer immer geparkte Modelle hielten 12 GB
+            # System-RAM (llama-server mmap) auch im Leerlauf belegt
+            "keep_alive": "10m",
         }
         response = self._client.post("/api/chat", json=body)
         response.raise_for_status()

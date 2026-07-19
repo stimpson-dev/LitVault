@@ -34,7 +34,9 @@ def test_ocr_image_builds_correct_request():
     assert captured["stream"] is False
     assert captured["options"] == OCR_OPTIONS
     assert captured["options"]["num_ctx"] == 8192  # GPU-Fit: voller 128K-Kontext spillt auf CPU
-    assert captured["keep_alive"] == -1
+    # Endliches keep_alive: -1 hielt die Modelle fuer immer im RAM (12 GB
+    # llama-server, 94% Systemauslastung, Praxisbefund 2026-07-19)
+    assert captured["keep_alive"] == "10m"
     msg = captured["messages"][0]
     assert msg["role"] == "user"
     assert msg["content"] == OCR_PROMPT

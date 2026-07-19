@@ -42,7 +42,9 @@ class OllamaClient:
                 "think": False,
                 "options": {"temperature": 0, "num_predict": 1024, "num_ctx": self.num_ctx},
                 "format": fmt,
-                "keep_alive": -1,
+                # Endlich statt -1: fuer immer geparkte Modelle hielten 12 GB
+                # System-RAM (llama-server mmap) auch im Leerlauf belegt
+                "keep_alive": "10m",
             }
             try:
                 response = await self._client.post("/api/chat", json=body)
